@@ -27,3 +27,59 @@ sources:
     url: https://www.facebook.com/wingskygj
   - name: naver-anacast
     url: https://blog.naver.com/anacast
+  - name: koreanair-recruit-main
+    url: https://recruit.koreanair.com
+  - name: asiana-main
+    url: https://flyasiana.com/I/WS/ko/contents?menuId=KW5100
+  - name: jejuair-recruit
+    url: https://recruit.jejuair.net
+  - name: jinair-recruit
+    url: https://jinair.recruiter.co.kr
+  - name: twayair-recruit
+    url: https://recruit.twayair.com
+  - name: airbusan-recruit
+    url: https://recruit.airbusan.com
+  - name: airseoul-recruit
+    url: https://airseoul.recruiter.co.kr
+  - name: eastarjet-recruit
+    url: https://recruit.eastarjet.com
+  - name: airpremia-recruit
+    url: https://www.airpremia.com/kor/about/recruit
+  - name: emirates-cabincrew
+    url: https://www.emiratesgroupcareers.com/cabin-crew
+  - name: qatar-cabincrew
+    url: https://www.qatarairways.com/en/careers/customer-experience/cabin-crew-recruitment.html
+  - name: etihad-cabincrew
+    url: https://careers.etihad.com/content/Cabin-Crew-at-Etihad
+  - name: singaporeair-cabincrew
+    url: https://careers.singaporeair.com/sia/go/Cabin-Crew/689244
+  - name: cathay-careers
+    url: https://careers.cathaypacific.com/en
+  - name: vietnamairlines-careers
+    url: https://www.vietnamairlines.com/us/en/vietnam-airlines/career-with-us
+  - name: scoot-careers
+    url: https://careers.flyscoot.com
+  - name: airmacau-hr
+    url: https://www.airmacau.com.mo/eng/about/hr.html
+  - name: philippineairlines-careers
+    url: https://careers.philippineairlines.com
+  - name: salaair-careers
+    url: https://careers.salaair.com
+  - name: klm-cabin
+    url: https://careers.klm.com/en/working-in-the-cabin
+  - name: lufthansa-cabin
+    url: https://lufthansagroup.careers/en/flight-attendant
+  - name: finnair-cabin
+    url: https://company.finnair.com/en/careers/cabin-crew
+  - name: airfrance-recruitment
+    url: https://recrutement.airfrance.com/homepage.aspx?LCID=2057
+  - name: ana-employ
+    url: https://www.ana.co.jp/en/eur/the-ana-experience/about-ana/employ
+  - name: jal-career
+    url: https://www.jal.co.jp/ar/en/career
+  - name: turkishairlines-cabincrew
+    url: https://careers.turkishairlines.com/en-us/cabin-crew
+  - name: crewkorea
+    url: https://crewkorea.com
+  - name: wingsky-now-recruit
+    url: http://wingsky.co.kr/NOW_recruit
