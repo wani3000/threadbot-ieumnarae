@@ -32,7 +32,7 @@ Set these in Vercel Project Settings > Environment Variables.
 3. Deploy.
 
 ## 4) Cron schedules (already in `vercel.json`, UTC)
-- `0 22 * * *` -> KST 07:00 collect/write tomorrow draft + email
+- `59 14 * * *` -> KST 23:59 collect/write tomorrow draft + email
 - `0 0 * * *` -> KST 09:00 auto post
 
 ## 5) Endpoints

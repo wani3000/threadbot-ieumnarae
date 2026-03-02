@@ -186,7 +186,7 @@ export default async function HomePage() {
             <Link href={`/edit?date=${data.tomorrowDraft.draft_date}`}>내일 글 수정하기</Link>
           </article>
         ) : (
-          <p>내일({data.tomorrow}) 예정 초안이 아직 없습니다. 07:00 수집/작성 후 표시됩니다.</p>
+          <p>내일({data.tomorrow}) 예정 초안이 아직 없습니다. 오늘 23:59(KST) 수집/작성 후 표시됩니다.</p>
         )}
       </section>
 
