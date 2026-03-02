@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 
 type Source = { id?: string; name: string; url: string; enabled: boolean };
+const isExternalUrl = (u: string) => /^https?:\/\//i.test(u);
 
 export default function SourceManager({ initial, editToken }: { initial: Source[]; editToken?: string }) {
   const [sources, setSources] = useState(initial);
@@ -71,11 +72,11 @@ export default function SourceManager({ initial, editToken }: { initial: Source[
 
   return (
     <div>
-      <p>총 {sources.filter((s) => s.enabled).length}개</p>
+      <p>총 {sources.filter((s) => s.enabled && isExternalUrl(s.url)).length}개</p>
       <h3>1. 공식 항공사 채용 홈페이지</h3>
       <ul>
         {sources
-          .filter((s) => s.enabled && isOfficialRecruitSource(s))
+          .filter((s) => s.enabled && isExternalUrl(s.url) && isOfficialRecruitSource(s))
           .map((s) => (
             <li key={s.id || `${s.name}-${s.url}`}>{s.name}: {s.url}</li>
           ))}
@@ -83,7 +84,7 @@ export default function SourceManager({ initial, editToken }: { initial: Source[
       <h3>2. 승무원 관련 강사/인플루언서</h3>
       <ul>
         {sources
-          .filter((s) => s.enabled && !isOfficialRecruitSource(s))
+          .filter((s) => s.enabled && isExternalUrl(s.url) && !isOfficialRecruitSource(s))
           .map((s) => (
             <li key={s.id || `${s.name}-${s.url}`}>{s.name}: {s.url}</li>
           ))}

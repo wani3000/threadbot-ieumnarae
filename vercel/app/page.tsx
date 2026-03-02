@@ -132,7 +132,7 @@ export default async function HomePage() {
   const recos = recommended(data.signals);
   const seriesRecos = seriesRecommended(data.signals);
   const keywordRows = keywordStats(data.signals);
-  const activeSources = data.sources.filter((s: { enabled: boolean }) => s.enabled);
+  const activeSources = data.sources.filter((s: { enabled: boolean; url: string }) => s.enabled && /^https?:\/\//i.test(s.url));
   const tomorrowSignals = ((data.tomorrowDraft as { source_json?: Signal[] } | null)?.source_json || []) as Signal[];
   const collected = summarizeCollected(tomorrowSignals);
   const priorityCount = sourcePriorityCounts(tomorrowSignals);
