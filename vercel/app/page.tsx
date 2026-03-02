@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import type { Signal } from "@/lib/types";
 import SourceManager from "@/components/SourceManager";
 import WriteModeSelector from "@/components/WriteModeSelector";
+import RegenerateDraftButton from "@/components/RegenerateDraftButton";
 import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 import { FULL_CONTENT_GUIDE, RULE_CHECKLIST } from "@/lib/contentGuide";
 
@@ -264,6 +265,7 @@ export default async function HomePage() {
             </p>
             <pre style={{ whiteSpace: "pre-wrap" }}>{data.tomorrowDraft.post}</pre>
             <Link href={`/edit?date=${data.tomorrowDraft.draft_date}`}>내일 글 수정하기</Link>
+            <RegenerateDraftButton draftDate={data.tomorrowDraft.draft_date} editToken={process.env.EDIT_TOKEN} />
           </article>
         ) : (
           <p>내일({data.tomorrow}) 예정 초안이 아직 없습니다. 오늘 23:59(KST) 수집/작성 후 표시됩니다.</p>
