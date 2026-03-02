@@ -32,6 +32,16 @@ function parseAirline(text: string): string | null {
   return null;
 }
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function defaultThreadsQueries(): string[] {
   return [
     "승무원",
@@ -81,7 +91,7 @@ function toConfidence(score: number): "high" | "medium" | "low" {
 export async function collectFromSource(source: Source, sinceIso: string): Promise<Signal[]> {
   const url = new URL(source.url);
   const sitemapUrl = `${url.protocol}//${url.host}/sitemap.xml`;
-  const res = await fetch(sitemapUrl, { cache: "no-store" });
+  const res = await fetchWithTimeout(sitemapUrl, { cache: "no-store" }, Number(process.env.SOURCE_FETCH_TIMEOUT_MS || "8000"));
   if (!res.ok) return [];
 
   const xml = await res.text();
@@ -132,11 +142,13 @@ export async function collectFromThreadsKeywords(sinceIso: string): Promise<Sign
         .filter(Boolean),
     ),
   );
-  const queries = expandThreadsQueries(baseQueries);
+  const expanded = expandThreadsQueries(baseQueries);
+  const maxQueries = Number(process.env.THREADS_SEARCH_MAX_QUERIES || "12");
+  const queries = expanded.slice(0, Math.max(1, Math.min(30, maxQueries)));
   if (queries.length === 0) return [];
 
   const limit = Number(process.env.THREADS_SEARCH_LIMIT || "25");
-  const pages = Number(process.env.THREADS_SEARCH_PAGES || "2");
+  const pages = Number(process.env.THREADS_SEARCH_PAGES || "1");
   const minScore = Number(process.env.THREADS_SEARCH_MIN_SCORE || "4");
   const until = new Date().toISOString();
   const items: Signal[] = [];
@@ -156,11 +168,11 @@ export async function collectFromThreadsKeywords(sinceIso: string): Promise<Sign
       if (after) params.set("after", after);
       const endpoint = `${THREADS_GRAPH_BASE}/keyword_search?${params.toString()}`;
       try {
-        const res = await fetch(endpoint, {
+        const res = await fetchWithTimeout(endpoint, {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
-        });
+        }, Number(process.env.THREADS_FETCH_TIMEOUT_MS || "7000"));
         if (!res.ok) break;
         const json = (await res.json().catch(() => ({}))) as {
           data?: Array<{

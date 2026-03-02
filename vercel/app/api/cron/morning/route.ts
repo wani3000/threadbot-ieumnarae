@@ -35,13 +35,10 @@ export async function GET(req: Request) {
   }
 
   const allSignals: Signal[] = [];
-  for (const source of (sources || []) as Source[]) {
-    try {
-      const rows = await collectFromSource(source, since.toISOString());
-      allSignals.push(...rows);
-    } catch {
-      // keep partial success
-    }
+  const sourceList = (sources || []) as Source[];
+  const settled = await Promise.allSettled(sourceList.map((source) => collectFromSource(source, since.toISOString())));
+  for (const s of settled) {
+    if (s.status === "fulfilled") allSignals.push(...s.value);
   }
   const keywordSignals = await collectFromThreadsKeywords(since.toISOString());
   allSignals.push(...keywordSignals);

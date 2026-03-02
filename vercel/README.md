@@ -12,8 +12,11 @@ Set these in Vercel Project Settings > Environment Variables.
 - `THREADS_GRAPH_BASE` (optional, default `https://graph.threads.net`)
 - `THREADS_SEARCH_QUERIES` (optional, comma separated keywords)
 - `THREADS_SEARCH_LIMIT` (optional, default `25`)
-- `THREADS_SEARCH_PAGES` (optional, default `2`, max `5`)
+- `THREADS_SEARCH_PAGES` (optional, default `1`, max `5`)
 - `THREADS_SEARCH_MIN_SCORE` (optional, default `4`)
+- `THREADS_SEARCH_MAX_QUERIES` (optional, default `12`)
+- `THREADS_FETCH_TIMEOUT_MS` (optional, default `7000`)
+- `SOURCE_FETCH_TIMEOUT_MS` (optional, default `8000`)
 - `RESEND_API_KEY`
 - `EMAIL_FROM` (Resend verified sender, e.g. `ThreadBot <noreply@yourdomain.com>`)
 - `EMAIL_TO` (`oxaz1234@gmail.com`)
