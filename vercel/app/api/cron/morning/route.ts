@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { baseUrl, getEnv, isAuthorizedCron } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase";
-import { collectFromSource, dedupeSignals } from "@/lib/collect";
+import { collectFromSource, collectFromThreadsKeywords, dedupeSignals } from "@/lib/collect";
 import { generatePost } from "@/lib/generate";
 import { sendDraftEmail } from "@/lib/email";
 import type { Signal, Source } from "@/lib/types";
@@ -41,6 +41,8 @@ export async function GET(req: Request) {
       // keep partial success
     }
   }
+  const keywordSignals = await collectFromThreadsKeywords(since.toISOString());
+  allSignals.push(...keywordSignals);
   const signals = dedupeSignals(allSignals);
 
   if (signals.length > 0) {
@@ -84,5 +86,13 @@ export async function GET(req: Request) {
     editUrl,
   });
 
-  return NextResponse.json({ ok: true, draft: draftRow, signals: signals.length, targetDate, editUrl });
+  return NextResponse.json({
+    ok: true,
+    draft: draftRow,
+    signals: signals.length,
+    sourceSignals: allSignals.length - keywordSignals.length,
+    keywordSignals: keywordSignals.length,
+    targetDate,
+    editUrl,
+  });
 }

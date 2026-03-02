@@ -8,7 +8,10 @@ Set these in Vercel Project Settings > Environment Variables.
 - `OPENAI_API_KEY`
 - `OPENAI_MODEL` (optional, default `gpt-4o-mini`)
 - `THREADS_PUBLISH_TOKEN`
+- `THREADS_DISCOVERY_TOKEN` (optional, defaults to `THREADS_PUBLISH_TOKEN`)
 - `THREADS_GRAPH_BASE` (optional, default `https://graph.threads.net`)
+- `THREADS_SEARCH_QUERIES` (optional, comma separated keywords)
+- `THREADS_SEARCH_LIMIT` (optional, default `25`)
 - `RESEND_API_KEY`
 - `EMAIL_FROM` (Resend verified sender, e.g. `ThreadBot <noreply@yourdomain.com>`)
 - `EMAIL_TO` (`oxaz1234@gmail.com`)
@@ -40,6 +43,9 @@ Set these in Vercel Project Settings > Environment Variables.
 - This code uses official 2-step publish flow:
   1. `POST /me/threads` with `media_type=TEXT,text=...`
   2. `POST /me/threads_publish` with `creation_id`
+- Keyword discovery uses official endpoint:
+  - `GET /keyword_search` with `q`, `search_type`, `search_mode`, `since`, `until`, `limit`, `fields`
+  - Requires proper Threads permissions (e.g. keyword search scope approved in Meta App Review).
 
 ## 6) Email edit flow
 Morning email includes tomorrow 09:00 scheduled draft link:

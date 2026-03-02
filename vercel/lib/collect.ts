@@ -2,6 +2,7 @@ import { parseStringPromise } from "xml2js";
 import type { Signal, Source } from "./types";
 
 const RECRUIT_PATH_KEYS = ["/career/apply", "/career/recruit", "/career/recruitment", "/career/job", "/career/open"];
+const THREADS_GRAPH_BASE = (process.env.THREADS_GRAPH_BASE || "https://graph.threads.net").replace(/\/$/, "");
 
 function looksLikeRecruitPath(url: string): boolean {
   const low = url.toLowerCase();
@@ -13,6 +14,20 @@ function parseAirline(text: string): string | null {
   if (low.includes("koreanair") || low.includes("대한항공")) return "대한항공";
   if (low.includes("asiana") || low.includes("아시아나")) return "아시아나항공";
   return null;
+}
+
+function defaultThreadsQueries(): string[] {
+  return [
+    "승무원",
+    "항공사채용",
+    "꿀팁",
+    "승무원꿀팁",
+    "항공사채용꿀팁",
+    "항공사면접꿀팁",
+    "면접꿀팁",
+    "승무원 면접",
+    "승무원서류",
+  ];
 }
 
 export async function collectFromSource(source: Source, sinceIso: string): Promise<Signal[]> {
@@ -54,6 +69,79 @@ export async function collectFromSource(source: Source, sinceIso: string): Promi
         confidence: "high" as const,
       };
     });
+}
+
+export async function collectFromThreadsKeywords(sinceIso: string): Promise<Signal[]> {
+  const token = process.env.THREADS_DISCOVERY_TOKEN || process.env.THREADS_PUBLISH_TOKEN || "";
+  if (!token) return [];
+
+  const queryText = process.env.THREADS_SEARCH_QUERIES || defaultThreadsQueries().join(",");
+  const queries = Array.from(
+    new Set(
+      queryText
+        .split(",")
+        .map((q) => q.trim())
+        .filter(Boolean),
+    ),
+  );
+  if (queries.length === 0) return [];
+
+  const limit = Number(process.env.THREADS_SEARCH_LIMIT || "25");
+  const until = new Date().toISOString();
+  const items: Signal[] = [];
+
+  for (const q of queries) {
+    const params = new URLSearchParams({
+      q,
+      search_type: "RECENT",
+      search_mode: "KEYWORD",
+      fields: "id,text,permalink,timestamp,username,topic_tag",
+      since: sinceIso,
+      until,
+      limit: String(Math.max(1, Math.min(50, limit))),
+    });
+    const endpoint = `${THREADS_GRAPH_BASE}/keyword_search?${params.toString()}`;
+    try {
+      const res = await fetch(endpoint, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+      if (!res.ok) continue;
+      const json = (await res.json().catch(() => ({}))) as {
+        data?: Array<{
+          id?: string;
+          text?: string;
+          permalink?: string;
+          timestamp?: string;
+          username?: string;
+          topic_tag?: string;
+        }>;
+      };
+      for (const row of json.data || []) {
+        const text = (row.text || "").trim();
+        const link =
+          row.permalink?.trim() ||
+          (row.username && row.id ? `https://www.threads.com/@${row.username}/post/${row.id}` : `https://www.threads.net/search?q=${encodeURIComponent(q)}`);
+        const title = text ? `키워드(${q}) ${text.slice(0, 50)}` : `키워드 검색 결과: ${q}`;
+        items.push({
+          source_name: `threads-keyword:${q}`,
+          source_url: endpoint,
+          title,
+          link,
+          published_at: row.timestamp || null,
+          airline: parseAirline(`${q} ${text}`),
+          role: /승무원|cabin/i.test(`${q} ${text}`) ? "승무원" : null,
+          summary: text || `Threads 키워드 검색(${q}) 결과입니다.`,
+          confidence: "medium",
+        });
+      }
+    } catch {
+      // keep partial success
+    }
+  }
+
+  return items;
 }
 
 export function dedupeSignals(signals: Signal[]): Signal[] {

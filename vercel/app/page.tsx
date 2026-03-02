@@ -45,6 +45,20 @@ function recommended(signals: Signal[]) {
   }));
 }
 
+function seriesRecommended(signals: Signal[]) {
+  const top = signals.slice(0, 3);
+  if (top.length === 0) return [];
+  return [
+    {
+      title: "연속 글 3편 구조 (시리즈)",
+      posts: top.map((s, idx) => ({
+        label: `${idx + 1}편`,
+        post: `[${idx + 1}/3]\n주제: ${s.title}\n핵심: ${s.summary}\n원문: ${s.link}`,
+      })),
+    },
+  ];
+}
+
 function ongoing(signals: Signal[]) {
   return signals.filter((s) => /채용|모집|승무원|객실|recruit|hiring/i.test(`${s.title} ${s.summary}`)).slice(0, 20);
 }
@@ -52,6 +66,7 @@ function ongoing(signals: Signal[]) {
 export default async function HomePage() {
   const data = await getHomeData();
   const recos = recommended(data.signals);
+  const seriesRecos = seriesRecommended(data.signals);
   const activeSources = data.sources.filter((s: { enabled: boolean }) => s.enabled);
 
   return (
@@ -64,11 +79,25 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <h2>2. 일주일 내 올려야할 추천 글 5개</h2>
+        <h2>2. 일주일 내 올려야할 추천 글 5개 (단건)</h2>
         {recos.map((r) => (
           <details key={r.title} style={{ marginBottom: 12 }}>
             <summary>{r.title}</summary>
             <pre style={{ whiteSpace: "pre-wrap" }}>{r.post}</pre>
+          </details>
+        ))}
+      </section>
+
+      <section>
+        <h2>2-2. 연속 글 구조 추천 (3편)</h2>
+        {seriesRecos.map((r) => (
+          <details key={r.title} style={{ marginBottom: 12 }}>
+            <summary>{r.title}</summary>
+            {r.posts.map((p) => (
+              <pre key={p.label} style={{ whiteSpace: "pre-wrap", marginBottom: 8 }}>
+                {p.post}
+              </pre>
+            ))}
           </details>
         ))}
       </section>
