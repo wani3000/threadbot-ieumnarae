@@ -23,8 +23,11 @@ export default function RegenerateDraftButton({ draftDate, editToken }: { draftD
       setMsg(data.error || "AI 재작성 실패");
       return;
     }
-    setMsg("AI로 내일 글 다시 작성 완료");
+    setMsg(`AI로 내일 글 다시 작성 완료 (${data.updated_at || "updated"})`);
     router.refresh();
+    setTimeout(() => {
+      if (typeof window !== "undefined") window.location.reload();
+    }, 400);
   }
 
   return (
