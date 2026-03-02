@@ -11,6 +11,14 @@ export default function RegenerateDraftButton({ draftDate }: { draftDate: string
   async function regenerate() {
     setLoading(true);
     setMsg("");
+    const sessionRes = await fetch("/api/admin/session", { cache: "no-store" });
+    const session = await sessionRes.json().catch(() => ({}));
+    if (!session?.authenticated) {
+      setLoading(false);
+      setMsg("관리자 로그인 후 다시 시도해주세요.");
+      return;
+    }
+
     const res = await fetch(`/api/drafts/${draftDate}`, {
       method: "POST",
     });
@@ -20,7 +28,9 @@ export default function RegenerateDraftButton({ draftDate }: { draftDate: string
       setMsg(data.error || "AI 재작성 실패");
       return;
     }
-    setMsg(`AI로 내일 글 다시 작성 완료 (${data.updated_at || "updated"})`);
+    setMsg(
+      `AI 재작성 완료 (${data.updated_at || "updated"}) · 모드:${data.write_mode || "-"} · 소스:${data.source_count || 0}건`,
+    );
     router.refresh();
     setTimeout(() => {
       if (typeof window !== "undefined") window.location.reload();

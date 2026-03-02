@@ -2,9 +2,22 @@ import OpenAI from "openai";
 import type { Signal } from "./types";
 import { FULL_CONTENT_GUIDE } from "./contentGuide";
 
-export async function generatePost(signals: Signal[], styleSample: string): Promise<string> {
+export type GeneratePostResult = {
+  post: string;
+  provider: "openai" | "fallback";
+  reason?: string;
+};
+
+export async function generatePostDetailed(
+  signals: Signal[],
+  styleSample: string,
+  extraPrompt = "",
+): Promise<GeneratePostResult> {
   if (signals.length === 0) {
-    return [
+    return {
+      provider: "fallback",
+      reason: "empty_signals",
+      post: [
       "오늘 공고 없네요?",
       "불안하실 수 있죠.",
       "저도 그랬어요.",
@@ -32,7 +45,8 @@ export async function generatePost(signals: Signal[], styleSample: string): Prom
       "저장해두고",
       "다음 공고 같이 봐요.",
       "5/5",
-    ].join("\n");
+      ].join("\n"),
+    };
   }
 
   const facts = signals
@@ -45,7 +59,7 @@ export async function generatePost(signals: Signal[], styleSample: string): Prom
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return fallbackPost(signals);
+    return { post: fallbackPost(signals), provider: "fallback", reason: "missing_api_key" };
   }
 
   try {
@@ -72,16 +86,34 @@ export async function generatePost(signals: Signal[], styleSample: string): Prom
         },
         {
           role: "user",
-          content: `[스타일 샘플]\n${styleSample}\n\n[팩트]\n${facts}\n\n오늘 주제: 최근 일주일 항공사 채용 업데이트\n슬라이드 수: 5\n요청: 가이드 전부 반영해서 스레드 초안 1개 작성`,
+          content: [
+            `[스타일 샘플]\n${styleSample}`,
+            `[팩트]\n${facts}`,
+            "오늘 주제: 최근 일주일 항공사 채용 업데이트",
+            "슬라이드 수: 5",
+            "요청: 가이드 전부 반영해서 스레드 초안 1개 작성",
+            extraPrompt ? `추가 요청: ${extraPrompt}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
         },
       ],
     });
 
     const text = response.choices[0]?.message?.content?.trim();
-    return text || fallbackPost(signals);
-  } catch {
-    return fallbackPost(signals);
+    if (!text) {
+      return { post: fallbackPost(signals), provider: "fallback", reason: "empty_model_output" };
+    }
+    return { post: text, provider: "openai" };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "openai_error";
+    return { post: fallbackPost(signals), provider: "fallback", reason };
   }
+}
+
+export async function generatePost(signals: Signal[], styleSample: string): Promise<string> {
+  const result = await generatePostDetailed(signals, styleSample);
+  return result.post;
 }
 
 function fallbackPost(signals: Signal[]): string {
