@@ -1,13 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function ManualIngestForm({ editToken }: { editToken?: string }) {
-  const router = useRouter();
   const [text, setText] = useState("");
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
+  const [recent, setRecent] = useState<Array<{ created_at: string; title: string; summary: string }>>([]);
+
+  async function loadRecent() {
+    const res = await fetch("/api/manual/ingest", {
+      headers: { "x-edit-token": editToken || "" },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => []);
+    if (res.ok && Array.isArray(data)) {
+      setRecent(data);
+    }
+  }
+
+  useEffect(() => {
+    loadRecent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function save() {
     if (!text.trim()) return;
@@ -29,7 +44,7 @@ export default function ManualIngestForm({ editToken }: { editToken?: string }) 
     }
     setMsg(`저장 완료: ${data.saved || 0}건`);
     setText("");
-    router.refresh();
+    await loadRecent();
   }
 
   return (
@@ -42,6 +57,23 @@ export default function ManualIngestForm({ editToken }: { editToken?: string }) 
       />
       <button onClick={save} disabled={saving}>{saving ? "저장 중..." : "저장하기"}</button>
       {msg ? <p>{msg}</p> : null}
+      <h3>최근 저장된 직접올린글</h3>
+      {recent.length === 0 ? (
+        <p>아직 없습니다.</p>
+      ) : (
+        <ul>
+          {recent.map((r) => (
+            <li key={`${r.created_at}-${r.title}`} style={{ marginBottom: 12 }}>
+              <strong>{new Date(r.created_at).toLocaleString("ko-KR")}</strong>
+              <div>{r.title}</div>
+              <div style={{ color: "#555" }}>
+                {r.summary.slice(0, 180)}
+                {r.summary.length > 180 ? "..." : ""}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
