@@ -23,7 +23,7 @@ async function getHomeData() {
   const [{ data: posts }, { data: drafts }, { data: signals }, { data: sources }, { data: tomorrowDraft }] = await Promise.all([
     db.from("posts").select("posted_at,post").gte("posted_at", weekAgoIso).order("posted_at", { ascending: false }).limit(10),
     db.from("drafts").select("draft_date,post,status,approved,updated_at").order("draft_date", { ascending: false }).limit(5),
-    db.from("signals").select("title,link,summary,published_at,airline,role,confidence").gte("created_at", weekAgoIso).order("published_at", { ascending: false }).limit(50),
+    db.from("signals").select("source_name,title,link,summary,published_at,airline,role,confidence").gte("created_at", weekAgoIso).order("published_at", { ascending: false }).limit(200),
     db.from("sources").select("name,url,enabled").order("created_at", { ascending: true }),
     db.from("drafts").select("draft_date,post,status,approved,updated_at").eq("draft_date", tomorrow).maybeSingle(),
   ]);
@@ -63,10 +63,27 @@ function ongoing(signals: Signal[]) {
   return signals.filter((s) => /채용|모집|승무원|객실|recruit|hiring/i.test(`${s.title} ${s.summary}`)).slice(0, 20);
 }
 
+function keywordStats(signals: Signal[]) {
+  const map = new Map<string, { count: number; top: Signal[] }>();
+  for (const s of signals) {
+    if (!s.source_name?.startsWith("threads-keyword:")) continue;
+    const keyword = s.source_name.replace("threads-keyword:", "").trim() || "기타";
+    const current = map.get(keyword) || { count: 0, top: [] };
+    current.count += 1;
+    if (current.top.length < 3) current.top.push(s);
+    map.set(keyword, current);
+  }
+
+  return [...map.entries()]
+    .map(([keyword, v]) => ({ keyword, count: v.count, top: v.top }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export default async function HomePage() {
   const data = await getHomeData();
   const recos = recommended(data.signals);
   const seriesRecos = seriesRecommended(data.signals);
+  const keywordRows = keywordStats(data.signals);
   const activeSources = data.sources.filter((s: { enabled: boolean }) => s.enabled);
 
   return (
@@ -107,6 +124,40 @@ export default async function HomePage() {
         <p>
           <a href="https://www.threads.com/tag/%ED%95%AD%EA%B3%B5%EC%82%AC" target="_blank">#항공사</a> | <a href="https://www.threads.com/tag/%EB%8C%80%ED%95%9C%ED%95%AD%EA%B3%B5" target="_blank">#대한항공</a> | <a href="https://www.threads.com/tag/%EC%95%84%EC%8B%9C%EC%95%84%EB%82%98%ED%95%AD%EA%B3%B5" target="_blank">#아시아나항공</a> | <a href="https://www.threads.com/tag/%EC%8A%B9%EB%AC%B4%EC%9B%90" target="_blank">#승무원</a> | <a href="https://www.threads.com/tag/%EC%8A%B9%EB%AC%B4%EC%9B%90%EC%B1%84%EC%9A%A9" target="_blank">#승무원채용</a> | <a href="https://www.threads.com/tag/%EC%8A%B9%EB%AC%B4%EC%9B%90%EC%B7%A8%EC%97%85" target="_blank">#승무원취업</a>
           </p>
+      </section>
+
+      <section>
+        <h2>3-2. 키워드별 수집 건수/상위 글</h2>
+        {keywordRows.length === 0 ? (
+          <p>최근 7일 키워드 수집 데이터가 없습니다.</p>
+        ) : (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>키워드</th>
+                <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>수집 건수</th>
+                <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>상위 글</th>
+              </tr>
+            </thead>
+            <tbody>
+              {keywordRows.map((row) => (
+                <tr key={row.keyword}>
+                  <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{row.keyword}</td>
+                  <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{row.count}</td>
+                  <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
+                    {row.top.map((s) => (
+                      <div key={`${row.keyword}-${s.link}`}>
+                        <a href={s.link} target="_blank">
+                          {s.title}
+                        </a>
+                      </div>
+                    ))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       <section>
