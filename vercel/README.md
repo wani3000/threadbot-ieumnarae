@@ -21,9 +21,9 @@ Set these in Vercel Project Settings > Environment Variables.
 - `RESEND_API_KEY`
 - `EMAIL_FROM` (Resend verified sender, e.g. `ThreadBot <noreply@yourdomain.com>`)
 - `EMAIL_TO` (`oxaz1234@gmail.com`)
-- `ADMIN_PASSWORD` (dashboard/edit 관리자 로그인 비밀번호)
-- `ADMIN_SESSION_SECRET` (세션 서명용 랜덤 긴 문자열)
-- `EDIT_TOKEN` (optional, legacy fallback only)
+- `ADMIN_EMAILS` (optional, admin 허용 이메일 CSV. 미입력 시 `EMAIL_TO` 사용)
+- `NEXT_PUBLIC_SUPABASE_URL` (`SUPABASE_URL`와 동일 값)
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase publishable key)
 - `APP_BASE_URL` (e.g. `https://threadbot.yourdomain.com`)
 - `CRON_SECRET` (optional but recommended)
 - `STYLE_SAMPLE` (optional long style prompt text)
@@ -56,7 +56,7 @@ Collection policy:
 - `POST /api/collection/sources/sync` sync built-in default sources (admin session required)
 - `GET/POST /api/write-mode` get/set writing mode
 - `GET/POST /api/manual/ingest` list/save manually pasted text corpus
-- `GET/POST/DELETE /api/admin/session` 관리자 로그인/세션
+- `GET/POST /api/admin/session` Google 세션 검증
 
 ## Threads publish note
 - This code uses official 2-step publish flow:
@@ -70,4 +70,4 @@ Collection policy:
 Morning email includes tomorrow 09:00 scheduled draft link:
 - `${APP_BASE_URL}/edit?date=YYYY-MM-DD`
 
-Edit 페이지에서 관리자 로그인 후 수정/승인하면 next-day 09:00 자동게시에 반영됩니다.
+Edit/대시보드 페이지에서 Google 로그인 후 수정/승인하면 next-day 09:00 자동게시에 반영됩니다.

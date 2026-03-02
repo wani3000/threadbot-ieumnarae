@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAdminAuthHeader } from "@/lib/supabaseBrowser";
 
 export default function RegenerateDraftButton({ draftDate }: { draftDate: string }) {
   const router = useRouter();
@@ -11,7 +12,8 @@ export default function RegenerateDraftButton({ draftDate }: { draftDate: string
   async function regenerate() {
     setLoading(true);
     setMsg("");
-    const sessionRes = await fetch("/api/admin/session", { cache: "no-store" });
+    const auth = await getAdminAuthHeader();
+    const sessionRes = await fetch("/api/admin/session", { headers: auth, cache: "no-store" });
     const session = await sessionRes.json().catch(() => ({}));
     if (!session?.authenticated) {
       setLoading(false);
@@ -21,6 +23,7 @@ export default function RegenerateDraftButton({ draftDate }: { draftDate: string
 
     const res = await fetch(`/api/drafts/${draftDate}`, {
       method: "POST",
+      headers: auth,
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);

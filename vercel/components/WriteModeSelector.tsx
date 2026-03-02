@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAdminAuthHeader } from "@/lib/supabaseBrowser";
 
 export default function WriteModeSelector() {
   const [mode, setMode] = useState<"crawl" | "direct">("crawl");
@@ -15,10 +16,12 @@ export default function WriteModeSelector() {
 
   async function update(next: "crawl" | "direct") {
     setMsg("");
+    const auth = await getAdminAuthHeader();
     const res = await fetch("/api/write-mode", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...auth,
       },
       body: JSON.stringify({ mode: next }),
     });

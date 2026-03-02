@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminRequest } from "@/lib/adminAuth";
+import { verifyAdminRequest } from "@/lib/adminAuth";
 import { badRequestResponse, serverErrorResponse, unauthorizedResponse } from "@/lib/apiError";
 import { supabaseAdmin } from "@/lib/supabase";
 
@@ -20,7 +20,8 @@ function titleFrom(text: string): string {
 }
 
 export async function GET(req: Request) {
-  if (!isAdminRequest(req)) return unauthorizedResponse();
+  const auth = await verifyAdminRequest(req);
+  if (!auth.ok) return unauthorizedResponse();
   try {
     const db = supabaseAdmin();
     const { data, error } = await db
@@ -37,7 +38,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  if (!isAdminRequest(req)) return unauthorizedResponse();
+  const auth = await verifyAdminRequest(req);
+  if (!auth.ok) return unauthorizedResponse();
   try {
     const body = (await req.json()) as { text?: string };
     const text = (body.text || "").trim();

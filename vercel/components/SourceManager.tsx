@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { isOfficialRecruitSource } from "@/lib/sourceClassify";
+import { getAdminAuthHeader } from "@/lib/supabaseBrowser";
 
 type Source = { id?: string; name: string; url: string; enabled: boolean };
 const isExternalUrl = (u: string) => /^https?:\/\//i.test(u);
@@ -28,6 +29,7 @@ export default function SourceManager({ initial }: { initial: Source[] }) {
 
   async function addSource() {
     setMsg("");
+    const auth = await getAdminAuthHeader();
     const urls = urlText
       .split("\n")
       .map((s) => s.trim())
@@ -37,6 +39,7 @@ export default function SourceManager({ initial }: { initial: Source[] }) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...auth,
       },
       body: JSON.stringify({ name, urls }),
     });
@@ -54,8 +57,12 @@ export default function SourceManager({ initial }: { initial: Source[] }) {
 
   async function syncDefaults() {
     setMsg("");
+    const auth = await getAdminAuthHeader();
     const res = await fetch("/api/collection/sources/sync", {
       method: "POST",
+      headers: {
+        ...auth,
+      },
     });
     const data = await res.json();
     if (!res.ok) {

@@ -1,72 +1,98 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAdminAuthHeader, getSupabaseBrowserClient } from "@/lib/supabaseBrowser";
+
+type SessionState = {
+  loading: boolean;
+  authenticated: boolean;
+  email: string | null;
+  message: string;
+};
 
 export default function AdminSessionPanel() {
-  const [password, setPassword] = useState("");
-  const [authenticated, setAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState("");
+  const [state, setState] = useState<SessionState>({
+    loading: true,
+    authenticated: false,
+    email: null,
+    message: "",
+  });
 
-  async function loadSession() {
-    setLoading(true);
-    const res = await fetch("/api/admin/session", { cache: "no-store" });
-    const data = await res.json().catch(() => ({}));
-    setAuthenticated(Boolean(data?.authenticated));
-    setLoading(false);
+  async function checkSession() {
+    try {
+      const headers = await getAdminAuthHeader();
+      const res = await fetch("/api/admin/session", { headers, cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      setState({
+        loading: false,
+        authenticated: Boolean(data?.authenticated),
+        email: data?.email || null,
+        message: "",
+      });
+    } catch (error) {
+      console.error("[AdminSessionPanel.checkSession]", error);
+      setState({
+        loading: false,
+        authenticated: false,
+        email: null,
+        message: "Google 로그인 설정을 확인해주세요.",
+      });
+    }
   }
 
   useEffect(() => {
-    loadSession().catch(() => setLoading(false));
+    checkSession();
   }, []);
 
-  async function login() {
-    setMsg("");
-    const res = await fetch("/api/admin/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setMsg(data.error || "로그인 실패");
+  async function loginWithGoogle() {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setState((prev) => ({ ...prev, message: "Supabase 공개키 설정이 필요합니다." }));
       return;
     }
-    setPassword("");
-    setAuthenticated(true);
-    setMsg("로그인 완료");
+    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+    if (error) {
+      setState((prev) => ({ ...prev, message: "Google 로그인 시작 실패" }));
+    }
   }
 
   async function logout() {
-    setMsg("");
-    await fetch("/api/admin/session", { method: "DELETE" });
-    setAuthenticated(false);
-    setMsg("로그아웃 완료");
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      setState((prev) => ({ ...prev, message: "Supabase 공개키 설정이 필요합니다." }));
+      return;
+    }
+    await supabase.auth.signOut();
+    setState({
+      loading: false,
+      authenticated: false,
+      email: null,
+      message: "로그아웃 완료",
+    });
   }
 
-  if (loading) return <p>관리자 세션 확인 중...</p>;
+  if (state.loading) return <p>관리자 세션 확인 중...</p>;
 
   return (
     <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
       <p>
-        관리자 세션: <strong>{authenticated ? "로그인됨" : "로그인 필요"}</strong>
+        관리자 세션: <strong>{state.authenticated ? "로그인됨" : "로그인 필요"}</strong>
+        {state.email ? ` (${state.email})` : ""}
       </p>
-      {!authenticated ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input
-            type="password"
-            placeholder="관리자 비밀번호"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button onClick={login}>로그인</button>
-        </div>
+      {!state.authenticated ? (
+        <button onClick={loginWithGoogle} style={{ width: 180 }}>
+          Google로 로그인
+        </button>
       ) : (
         <button onClick={logout} style={{ width: 120 }}>
           로그아웃
         </button>
       )}
-      {msg ? <p>{msg}</p> : null}
+      {state.message ? <p>{state.message}</p> : null}
     </div>
   );
 }

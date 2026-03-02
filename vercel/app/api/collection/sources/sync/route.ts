@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { isAdminRequest } from "@/lib/adminAuth";
+import { verifyAdminRequest } from "@/lib/adminAuth";
 import { serverErrorResponse, unauthorizedResponse } from "@/lib/apiError";
 import { supabaseAdmin } from "@/lib/supabase";
 import { syncDefaultSources } from "@/lib/sourceSync";
 
 export async function POST(req: Request) {
-  if (!isAdminRequest(req)) return unauthorizedResponse();
+  const auth = await verifyAdminRequest(req);
+  if (!auth.ok) return unauthorizedResponse();
   try {
     const db = supabaseAdmin();
     const result = await syncDefaultSources(db);

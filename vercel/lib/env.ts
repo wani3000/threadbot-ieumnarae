@@ -6,7 +6,6 @@ const required = [
   "RESEND_API_KEY",
   "EMAIL_TO",
   "EMAIL_FROM",
-  "EDIT_TOKEN",
 ] as const;
 
 export type RequiredEnv = (typeof required)[number];

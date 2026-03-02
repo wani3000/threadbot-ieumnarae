@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminRequest } from "@/lib/adminAuth";
+import { verifyAdminRequest } from "@/lib/adminAuth";
 import { badRequestResponse, notFoundResponse, serverErrorResponse, unauthorizedResponse } from "@/lib/apiError";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generatePostDetailed } from "@/lib/generate";
@@ -7,7 +7,8 @@ import { getWriteMode } from "@/lib/writeMode";
 import type { Signal } from "@/lib/types";
 
 export async function GET(req: Request, { params }: { params: { draftDate: string } }) {
-  if (!isAdminRequest(req)) return unauthorizedResponse();
+  const auth = await verifyAdminRequest(req);
+  if (!auth.ok) return unauthorizedResponse();
   try {
     const db = supabaseAdmin();
     const { data, error } = await db
@@ -23,7 +24,8 @@ export async function GET(req: Request, { params }: { params: { draftDate: strin
 }
 
 export async function PATCH(req: Request, { params }: { params: { draftDate: string } }) {
-  if (!isAdminRequest(req)) return unauthorizedResponse();
+  const auth = await verifyAdminRequest(req);
+  if (!auth.ok) return unauthorizedResponse();
   try {
     const body = (await req.json()) as { post?: string; approved?: boolean };
     if (!body.post || body.post.trim().length < 10) {
@@ -51,7 +53,8 @@ export async function PATCH(req: Request, { params }: { params: { draftDate: str
 }
 
 export async function POST(req: Request, { params }: { params: { draftDate: string } }) {
-  if (!isAdminRequest(req)) return unauthorizedResponse();
+  const auth = await verifyAdminRequest(req);
+  if (!auth.ok) return unauthorizedResponse();
 
   try {
     const db = supabaseAdmin();

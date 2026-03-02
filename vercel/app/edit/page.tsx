@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AdminSessionPanel from "@/components/AdminSessionPanel";
+import { getAdminAuthHeader } from "@/lib/supabaseBrowser";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,8 @@ function EditInner() {
     if (!endpoint) return;
     (async () => {
       setLoading(true);
-      const res = await fetch(endpoint, { cache: "no-store" });
+      const auth = await getAdminAuthHeader();
+      const res = await fetch(endpoint, { headers: auth, cache: "no-store" });
       const data = await res.json();
       if (res.ok) {
         setDraft(data);
@@ -43,9 +45,10 @@ function EditInner() {
 
   async function save(approved: boolean) {
     if (!date) return;
+    const auth = await getAdminAuthHeader();
     const res = await fetch(`/api/drafts/${date}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auth },
       body: JSON.stringify({ post: text, approved }),
     });
     const data = await res.json();

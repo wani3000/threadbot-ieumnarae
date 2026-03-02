@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAdminAuthHeader } from "@/lib/supabaseBrowser";
 
 export default function ManualIngestForm() {
   const [text, setText] = useState("");
@@ -9,7 +10,9 @@ export default function ManualIngestForm() {
   const [recent, setRecent] = useState<Array<{ created_at: string; title: string; summary: string }>>([]);
 
   async function loadRecent() {
+    const auth = await getAdminAuthHeader();
     const res = await fetch("/api/manual/ingest", {
+      headers: auth,
       cache: "no-store",
     });
     const data = await res.json().catch(() => []);
@@ -27,10 +30,12 @@ export default function ManualIngestForm() {
     if (!text.trim()) return;
     setSaving(true);
     setMsg("");
+    const auth = await getAdminAuthHeader();
     const res = await fetch("/api/manual/ingest", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...auth,
       },
       body: JSON.stringify({ text }),
     });

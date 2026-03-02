@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAdminRequest } from "@/lib/adminAuth";
+import { verifyAdminRequest } from "@/lib/adminAuth";
 import { badRequestResponse, serverErrorResponse, unauthorizedResponse } from "@/lib/apiError";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getWriteMode, setWriteMode, type WriteMode } from "@/lib/writeMode";
@@ -15,7 +15,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  if (!isAdminRequest(req)) return unauthorizedResponse();
+  const auth = await verifyAdminRequest(req);
+  if (!auth.ok) return unauthorizedResponse();
   try {
     const body = (await req.json()) as { mode?: WriteMode };
     if (body.mode !== "crawl" && body.mode !== "direct") {
