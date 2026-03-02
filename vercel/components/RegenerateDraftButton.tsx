@@ -31,8 +31,15 @@ export default function RegenerateDraftButton({ draftDate }: { draftDate: string
       setMsg(data.error || "AI 재작성 실패");
       return;
     }
+    const preview = Array.isArray(data.source_preview)
+      ? data.source_preview
+          .slice(0, 2)
+          .map((v: { title?: string }) => v.title || "")
+          .filter(Boolean)
+          .join(" / ")
+      : "";
     setMsg(
-      `AI 재작성 완료 (${data.updated_at || "updated"}) · 모드:${data.write_mode || "-"} · 소스:${data.source_count || 0}건`,
+      `AI 재작성 완료 (${data.updated_at || "updated"}) · 모드:${data.write_mode || "-"} · 소스:${data.source_count || 0}건${preview ? ` · 예시:${preview}` : ""}`,
     );
     router.refresh();
     setTimeout(() => {

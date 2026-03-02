@@ -12,6 +12,7 @@ export async function generatePostDetailed(
   signals: Signal[],
   styleSample: string,
   extraPrompt = "",
+  options?: { temperature?: number },
 ): Promise<GeneratePostResult> {
   if (signals.length === 0) {
     return {
@@ -66,7 +67,7 @@ export async function generatePostDetailed(
     const client = new OpenAI({ apiKey });
     const response = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-      temperature: 0.5,
+      temperature: options?.temperature ?? 0.5,
       messages: [
         {
           role: "system",

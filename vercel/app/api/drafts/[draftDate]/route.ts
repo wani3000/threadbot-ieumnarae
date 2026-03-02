@@ -67,28 +67,38 @@ export async function POST(req: Request, { params }: { params: { draftDate: stri
 
     const writeMode = await getWriteMode(db);
     let signals: Signal[] = [];
+    let sourceType: "manual-upload" | "crawl-signals" = "crawl-signals";
 
     if (writeMode === "direct") {
       const since = new Date();
-      since.setDate(since.getDate() - 7);
+      since.setDate(since.getDate() - 180);
       const { data: manualRows } = await db
         .from("signals")
         .select("source_name,source_url,title,link,published_at,airline,role,summary,confidence,created_at")
         .eq("source_name", "manual-upload")
         .gte("created_at", since.toISOString())
         .order("created_at", { ascending: false })
-        .limit(300);
+        .limit(1000);
       signals = ((manualRows || []) as Signal[]).slice(0, 120);
+      sourceType = "manual-upload";
+      if (signals.length === 0) {
+        return badRequestResponse("직접올린글 모드인데 저장된 직접올린글이 없습니다. 정보올리기에서 먼저 저장해주세요.");
+      }
     } else {
       signals = ((draft.source_json as Signal[] | null) || []).slice(0, 120);
-    }
-
-    if (signals.length === 0) {
-      signals = ((draft.source_json as Signal[] | null) || []).slice(0, 120);
+      if (signals.length === 0) {
+        return badRequestResponse("크롤링 소스 데이터가 없습니다. 수집을 먼저 실행해주세요.");
+      }
     }
 
     const style = process.env.STYLE_SAMPLE || "친근한 승무원 취업 코칭 톤";
-    let result = await generatePostDetailed(signals, style, "기존 초안과 다른 훅/전개로 재작성");
+    const regenNonce = `${new Date().toISOString()}-${Math.random().toString(36).slice(2, 8)}`;
+    let result = await generatePostDetailed(
+      signals,
+      style,
+      `기존 초안과 다른 훅/전개로 재작성. 고유 시드:${regenNonce}`,
+      { temperature: 0.9 },
+    );
     if (result.provider !== "openai") {
       console.error("[api/drafts POST] regenerate fallback reason:", result.reason);
       return NextResponse.json(
@@ -103,7 +113,8 @@ export async function POST(req: Request, { params }: { params: { draftDate: stri
       result = await generatePostDetailed(
         signals,
         style,
-        `기존 글과 반드시 다르게 작성. 새로운 훅 사용. 요청시각:${new Date().toISOString()}`,
+        `기존 글과 반드시 다르게 작성. 새로운 훅 사용. 이전본문첫줄:${oldPost.split("\n")[0] || "-"} 고유시드:${Date.now()}`,
+        { temperature: 1.0 },
       );
       if (result.provider === "openai") regenerated = result.post;
     }
@@ -134,6 +145,11 @@ export async function POST(req: Request, { params }: { params: { draftDate: stri
       changed: true,
       source_count: signals.length,
       write_mode: writeMode,
+      source_type: sourceType,
+      source_preview: signals.slice(0, 5).map((s) => ({
+        title: s.title,
+        source_name: s.source_name,
+      })),
     });
   } catch (error) {
     return serverErrorResponse("api/drafts POST", error);
