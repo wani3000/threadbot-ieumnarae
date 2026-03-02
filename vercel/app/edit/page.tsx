@@ -57,6 +57,22 @@ function EditInner() {
     }
   }
 
+  async function regenerate() {
+    if (!date) return;
+    setMessage("AI 재작성 중...");
+    const res = await fetch(`/api/drafts/${date}?token=${encodeURIComponent(token)}`, {
+      method: "POST",
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setDraft(data);
+      setText(data.post || "");
+      setMessage("AI로 내일 글 다시 작성 완료");
+    } else {
+      setMessage(data.error || "AI 재작성 실패");
+    }
+  }
+
   if (!date) return <main style={{ padding: 24 }}>date 파라미터가 필요합니다.</main>;
 
   return (
@@ -68,6 +84,7 @@ function EditInner() {
       {draft ? <p>상태: {draft.status} / 승인: {String(draft.approved)}</p> : null}
       <textarea value={text} onChange={(e) => setText(e.target.value)} rows={18} style={{ width: "100%", padding: 12 }} />
       <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
+        <button onClick={regenerate}>AI로 내일 글 다시 작성하기</button>
         <button onClick={() => save(false)}>수정 저장</button>
         <button onClick={() => save(true)}>승인 완료</button>
       </div>
