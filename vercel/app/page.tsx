@@ -2,6 +2,7 @@ import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { Signal } from "@/lib/types";
 import SourceManager from "@/components/SourceManager";
+import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,28 @@ function summarizeCollected(signals: Signal[]) {
   return { total: signals.length, airlines, topItems };
 }
 
+function sourcePriorityCounts(signals: Signal[]) {
+  let threads = 0;
+  let naver = 0;
+  let official = 0;
+  for (const s of signals) {
+    const src = { name: s.source_name || "", url: s.source_url || "" };
+    const low = `${src.name} ${src.url}`.toLowerCase();
+    if (s.source_name?.startsWith("threads-keyword:") || low.includes("threads.com")) {
+      threads += 1;
+      continue;
+    }
+    if (low.includes("blog.naver.com") || low.includes("rss.blog.naver.com")) {
+      naver += 1;
+      continue;
+    }
+    if (isOfficialRecruitSource(src)) {
+      official += 1;
+    }
+  }
+  return { threads, naver, official };
+}
+
 function keywordStats(signals: Signal[]) {
   const map = new Map<string, { count: number; top: Signal[] }>();
   for (const s of signals) {
@@ -100,6 +123,7 @@ export default async function HomePage() {
   const activeSources = data.sources.filter((s: { enabled: boolean }) => s.enabled);
   const tomorrowSignals = ((data.tomorrowDraft as { source_json?: Signal[] } | null)?.source_json || []) as Signal[];
   const collected = summarizeCollected(tomorrowSignals);
+  const priorityCount = sourcePriorityCounts(tomorrowSignals);
 
   return (
     <main style={{ maxWidth: 980, margin: "0 auto", padding: "24px", fontFamily: "system-ui, sans-serif" }}>
@@ -211,6 +235,9 @@ export default async function HomePage() {
           <p>수집 요약이 아직 없습니다.</p>
         ) : (
           <>
+            <p>
+              오늘 수집 우선순위 적용 결과: threads {priorityCount.threads}건 / naver {priorityCount.naver}건 / 공식 {priorityCount.official}건
+            </p>
             <p>총 수집 건수: {collected.total}건</p>
             <p>
               항공사 분포:{" "}
