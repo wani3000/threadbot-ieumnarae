@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import AdminSessionPanel from "@/components/AdminSessionPanel";
 import { getAdminAuthHeader } from "@/lib/supabaseBrowser";
 
@@ -65,6 +66,7 @@ function EditInner() {
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: 24, fontFamily: "system-ui, sans-serif" }}>
       <h1>초안 수정</h1>
+      <p><Link href="/">뒤로가기</Link></p>
       <AdminSessionPanel />
       <p>날짜: {date}</p>
       {loading ? <p>로딩 중...</p> : null}
