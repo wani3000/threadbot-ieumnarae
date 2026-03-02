@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedCron } from "@/lib/env";
+import { notFoundResponse, serverErrorResponse, unauthorizedResponse } from "@/lib/apiError";
 import { supabaseAdmin } from "@/lib/supabase";
 import { publishThreads } from "@/lib/threads";
 
@@ -16,7 +17,7 @@ function kstDayBoundsUtc(dateKst: string): { startUtc: string; endUtc: string } 
 
 export async function GET(req: Request) {
   if (!isAuthorizedCron(req)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
 
   const db = supabaseAdmin();
@@ -25,7 +26,7 @@ export async function GET(req: Request) {
 
   const { data: draft, error } = await db.from("drafts").select("id,post,draft_date,status").eq("draft_date", today).single();
   if (error || !draft) {
-    return NextResponse.json({ error: "today draft not found" }, { status: 404 });
+    return notFoundResponse("오늘 게시할 초안이 없습니다.");
   }
 
   // Hard guard: never publish more than once per KST day.
@@ -36,7 +37,7 @@ export async function GET(req: Request) {
     .lt("posted_at", endUtc)
     .limit(1);
   if (postCheckErr) {
-    return NextResponse.json({ error: postCheckErr.message }, { status: 500 });
+    return serverErrorResponse("api/cron/post post-check", postCheckErr);
   }
   if ((todayPosts || []).length > 0 || draft.status === "posted") {
     return NextResponse.json({

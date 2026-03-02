@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function RegenerateDraftButton({ draftDate, editToken }: { draftDate: string; editToken?: string }) {
+export default function RegenerateDraftButton({ draftDate }: { draftDate: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -13,9 +13,6 @@ export default function RegenerateDraftButton({ draftDate, editToken }: { draftD
     setMsg("");
     const res = await fetch(`/api/drafts/${draftDate}`, {
       method: "POST",
-      headers: {
-        "x-edit-token": editToken || "",
-      },
     });
     const data = await res.json().catch(() => ({}));
     setLoading(false);

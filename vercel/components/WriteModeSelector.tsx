@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export default function WriteModeSelector({ editToken }: { editToken?: string }) {
+export default function WriteModeSelector() {
   const [mode, setMode] = useState<"crawl" | "direct">("crawl");
   const [msg, setMsg] = useState("");
 
@@ -19,7 +19,6 @@ export default function WriteModeSelector({ editToken }: { editToken?: string })
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-edit-token": editToken || "",
       },
       body: JSON.stringify({ mode: next }),
     });

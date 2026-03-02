@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { baseUrl, getEnv, isAuthorizedCron } from "@/lib/env";
+import { serverErrorResponse, unauthorizedResponse } from "@/lib/apiError";
 import { supabaseAdmin } from "@/lib/supabase";
 import { collectFromSource, collectFromThreadsKeywords, dedupeSignals, prioritizeSignals } from "@/lib/collect";
 import { generatePost } from "@/lib/generate";
@@ -31,7 +32,7 @@ function influencerSourcePriority(source: Source): number {
 
 export async function GET(req: Request) {
   if (!isAuthorizedCron(req)) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return unauthorizedResponse();
   }
   const quick = new URL(req.url).searchParams.get("quick") === "1";
 
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
       .select("name,url,enabled")
       .eq("enabled", true);
     if (sourceErr) {
-      return NextResponse.json({ error: sourceErr.message }, { status: 500 });
+      return serverErrorResponse("api/cron/morning sources", sourceErr);
     }
 
     const sourceList = (sources || []) as Source[];
@@ -120,10 +121,10 @@ export async function GET(req: Request) {
     .single();
 
   if (draftErr) {
-    return NextResponse.json({ error: draftErr.message }, { status: 500 });
+    return serverErrorResponse("api/cron/morning upsert-draft", draftErr);
   }
 
-  const editUrl = `${baseUrl()}/edit?date=${targetDate}&token=${encodeURIComponent(getEnv("EDIT_TOKEN"))}`;
+  const editUrl = `${baseUrl()}/edit?date=${targetDate}`;
   await sendDraftEmail({
     to: getEnv("EMAIL_TO"),
     from: getEnv("EMAIL_FROM"),

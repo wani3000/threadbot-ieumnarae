@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export default function ManualIngestForm({ editToken }: { editToken?: string }) {
+export default function ManualIngestForm() {
   const [text, setText] = useState("");
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
@@ -10,7 +10,6 @@ export default function ManualIngestForm({ editToken }: { editToken?: string }) 
 
   async function loadRecent() {
     const res = await fetch("/api/manual/ingest", {
-      headers: { "x-edit-token": editToken || "" },
       cache: "no-store",
     });
     const data = await res.json().catch(() => []);
@@ -32,7 +31,6 @@ export default function ManualIngestForm({ editToken }: { editToken?: string }) 
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-edit-token": editToken || "",
       },
       body: JSON.stringify({ text }),
     });

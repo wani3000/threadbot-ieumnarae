@@ -21,7 +21,9 @@ Set these in Vercel Project Settings > Environment Variables.
 - `RESEND_API_KEY`
 - `EMAIL_FROM` (Resend verified sender, e.g. `ThreadBot <noreply@yourdomain.com>`)
 - `EMAIL_TO` (`oxaz1234@gmail.com`)
-- `EDIT_TOKEN` (random long string)
+- `ADMIN_PASSWORD` (dashboard/edit 관리자 로그인 비밀번호)
+- `ADMIN_SESSION_SECRET` (세션 서명용 랜덤 긴 문자열)
+- `EDIT_TOKEN` (optional, legacy fallback only)
 - `APP_BASE_URL` (e.g. `https://threadbot.yourdomain.com`)
 - `CRON_SECRET` (optional but recommended)
 - `STYLE_SAMPLE` (optional long style prompt text)
@@ -49,11 +51,12 @@ Collection policy:
 ## 5) Endpoints
 - `GET /api/cron/morning` cron only
 - `GET /api/cron/post` cron only
-- `GET/PATCH /api/drafts/:date?token=...` draft edit
+- `GET/PATCH /api/drafts/:date` draft edit (admin session required)
 - `GET/POST /api/collection/sources` source list/add
-- `POST /api/collection/sources/sync` sync built-in default sources (admin token required)
+- `POST /api/collection/sources/sync` sync built-in default sources (admin session required)
 - `GET/POST /api/write-mode` get/set writing mode
 - `GET/POST /api/manual/ingest` list/save manually pasted text corpus
+- `GET/POST/DELETE /api/admin/session` 관리자 로그인/세션
 
 ## Threads publish note
 - This code uses official 2-step publish flow:
@@ -65,6 +68,6 @@ Collection policy:
 
 ## 6) Email edit flow
 Morning email includes tomorrow 09:00 scheduled draft link:
-- `${APP_BASE_URL}/edit?date=YYYY-MM-DD&token=${EDIT_TOKEN}`
+- `${APP_BASE_URL}/edit?date=YYYY-MM-DD`
 
-Edit and approve there before next-day 09:00 post.
+Edit 페이지에서 관리자 로그인 후 수정/승인하면 next-day 09:00 자동게시에 반영됩니다.

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import AdminSessionPanel from "@/components/AdminSessionPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +17,13 @@ type Draft = {
 function EditInner() {
   const search = useSearchParams();
   const date = search.get("date") || "";
-  const token = search.get("token") || "";
 
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [text, setText] = useState("");
   const [message, setMessage] = useState("");
 
-  const endpoint = useMemo(() => (date ? `/api/drafts/${date}?token=${encodeURIComponent(token)}` : ""), [date, token]);
+  const endpoint = useMemo(() => (date ? `/api/drafts/${date}` : ""), [date]);
 
   useEffect(() => {
     if (!endpoint) return;
@@ -43,7 +43,7 @@ function EditInner() {
 
   async function save(approved: boolean) {
     if (!date) return;
-    const res = await fetch(`/api/drafts/${date}?token=${encodeURIComponent(token)}`, {
+    const res = await fetch(`/api/drafts/${date}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ post: text, approved }),
@@ -62,6 +62,7 @@ function EditInner() {
   return (
     <main style={{ maxWidth: 900, margin: "0 auto", padding: 24, fontFamily: "system-ui, sans-serif" }}>
       <h1>초안 수정</h1>
+      <AdminSessionPanel />
       <p>날짜: {date}</p>
       {loading ? <p>로딩 중...</p> : null}
       {message ? <p>{message}</p> : null}

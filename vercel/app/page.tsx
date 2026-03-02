@@ -4,6 +4,7 @@ import type { Signal } from "@/lib/types";
 import SourceManager from "@/components/SourceManager";
 import WriteModeSelector from "@/components/WriteModeSelector";
 import RegenerateDraftButton from "@/components/RegenerateDraftButton";
+import AdminSessionPanel from "@/components/AdminSessionPanel";
 import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 import { FULL_CONTENT_GUIDE, RULE_CHECKLIST } from "@/lib/contentGuide";
 
@@ -142,8 +143,13 @@ export default async function HomePage() {
       <h1>ThreadBot Dashboard (Vercel)</h1>
 
       <section>
+        <h2>관리자 로그인</h2>
+        <AdminSessionPanel />
+      </section>
+
+      <section>
         <h2>작성 방식 선택</h2>
-        <WriteModeSelector editToken={process.env.EDIT_TOKEN} />
+        <WriteModeSelector />
         <p style={{ marginTop: 8 }}>
           <Link href="/upload">정보올리기 페이지로 이동</Link>
         </p>
@@ -253,7 +259,7 @@ export default async function HomePage() {
 
       <section>
         <h2>수집 URL</h2>
-        <SourceManager initial={activeSources} editToken={process.env.EDIT_TOKEN} />
+        <SourceManager initial={activeSources} />
       </section>
 
       <section>
@@ -265,7 +271,7 @@ export default async function HomePage() {
             </p>
             <pre style={{ whiteSpace: "pre-wrap" }}>{data.tomorrowDraft.post}</pre>
             <Link href={`/edit?date=${data.tomorrowDraft.draft_date}`}>내일 글 수정하기</Link>
-            <RegenerateDraftButton draftDate={data.tomorrowDraft.draft_date} editToken={process.env.EDIT_TOKEN} />
+            <RegenerateDraftButton draftDate={data.tomorrowDraft.draft_date} />
           </article>
         ) : (
           <p>내일({data.tomorrow}) 예정 초안이 아직 없습니다. 오늘 23:59(KST) 수집/작성 후 표시됩니다.</p>

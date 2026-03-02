@@ -6,7 +6,7 @@ import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 type Source = { id?: string; name: string; url: string; enabled: boolean };
 const isExternalUrl = (u: string) => /^https?:\/\//i.test(u);
 
-export default function SourceManager({ initial, editToken }: { initial: Source[]; editToken?: string }) {
+export default function SourceManager({ initial }: { initial: Source[] }) {
   const [sources, setSources] = useState(initial);
   const [name, setName] = useState("");
   const [urlText, setUrlText] = useState("");
@@ -37,7 +37,6 @@ export default function SourceManager({ initial, editToken }: { initial: Source[
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-edit-token": editToken || "",
       },
       body: JSON.stringify({ name, urls }),
     });
@@ -57,9 +56,6 @@ export default function SourceManager({ initial, editToken }: { initial: Source[
     setMsg("");
     const res = await fetch("/api/collection/sources/sync", {
       method: "POST",
-      headers: {
-        "x-edit-token": editToken || "",
-      },
     });
     const data = await res.json();
     if (!res.ok) {
