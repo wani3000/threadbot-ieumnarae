@@ -81,7 +81,7 @@ export default async function HomePage() {
 
       <section>
         <h2>수집 URL</h2>
-        <SourceManager initial={activeSources} />
+        <SourceManager initial={activeSources} editToken={process.env.EDIT_TOKEN} />
       </section>
 
       <section>

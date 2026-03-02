@@ -4,9 +4,8 @@ import { useState } from "react";
 
 type Source = { id?: string; name: string; url: string; enabled: boolean };
 
-export default function SourceManager({ initial }: { initial: Source[] }) {
+export default function SourceManager({ initial, editToken }: { initial: Source[]; editToken?: string }) {
   const [sources, setSources] = useState(initial);
-  const [token, setToken] = useState("");
   const [name, setName] = useState("");
   const [urlText, setUrlText] = useState("");
   const [msg, setMsg] = useState("");
@@ -22,7 +21,7 @@ export default function SourceManager({ initial }: { initial: Source[] }) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-edit-token": token,
+        "x-edit-token": editToken || "",
       },
       body: JSON.stringify({ name, urls }),
     });
@@ -47,7 +46,6 @@ export default function SourceManager({ initial }: { initial: Source[] }) {
         ))}
       </ul>
       <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-        <input placeholder="EDIT_TOKEN" value={token} onChange={(e) => setToken(e.target.value)} />
         <input placeholder="소스 이름 (선택: 1개 입력 시만 적용)" value={name} onChange={(e) => setName(e.target.value)} />
         <textarea
           placeholder={"https://example.com/1\nhttps://example.com/2"}
