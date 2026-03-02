@@ -8,6 +8,21 @@ export type GeneratePostResult = {
   reason?: string;
 };
 
+function sanitizeGeneratedPost(raw: string): string {
+  const banned = [
+    "아니면 제 프로필 링크도 참고해보세요",
+    "이음나래아카데미 나래쌤",
+    "ieumnarae.com",
+  ];
+  const lines = raw
+    .split("\n")
+    .filter((line) => {
+      const low = line.toLowerCase();
+      return !banned.some((b) => low.includes(b.toLowerCase()));
+    });
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 export async function generatePostDetailed(
   signals: Signal[],
   styleSample: string,
@@ -82,6 +97,7 @@ export async function generatePostDetailed(
             "해시태그는 사용하지 않는다.",
             "사실은 [팩트]에 있는 내용만 사용한다.",
             "과장/추측/지어낸 후기 금지.",
+            "프로필 링크/개인 사이트 링크/ieumnarae.com/이음나래아카데미 문구 금지.",
             "마지막 슬라이드에만 원문 링크 1~2개를 넣는다.",
           ].join(" "),
         },
@@ -103,12 +119,12 @@ export async function generatePostDetailed(
 
     const text = response.choices[0]?.message?.content?.trim();
     if (!text) {
-      return { post: fallbackPost(signals), provider: "fallback", reason: "empty_model_output" };
+      return { post: sanitizeGeneratedPost(fallbackPost(signals)), provider: "fallback", reason: "empty_model_output" };
     }
-    return { post: text, provider: "openai" };
+    return { post: sanitizeGeneratedPost(text), provider: "openai" };
   } catch (error) {
     const reason = error instanceof Error ? error.message : "openai_error";
-    return { post: fallbackPost(signals), provider: "fallback", reason };
+    return { post: sanitizeGeneratedPost(fallbackPost(signals)), provider: "fallback", reason };
   }
 }
 
