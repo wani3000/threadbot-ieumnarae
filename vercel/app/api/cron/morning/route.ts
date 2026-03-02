@@ -90,7 +90,8 @@ export async function GET(req: Request) {
 
   const signals = prioritizeSignals(dedupeSignals(allSignals));
 
-  if (signals.length > 0) {
+  const shouldPersistCollected = writeMode !== "direct";
+  if (signals.length > 0 && shouldPersistCollected) {
     await db.from("signals").insert(
       signals.map((s) => ({
         ...s,
