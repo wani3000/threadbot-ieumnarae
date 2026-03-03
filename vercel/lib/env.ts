@@ -23,11 +23,17 @@ export function assertEnv(): void {
 
 export function isAuthorizedCron(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
+  const hasVercelCronHeader = req.headers.has("x-vercel-cron");
+  const userAgent = (req.headers.get("user-agent") || "").toLowerCase();
+  const isVercelCronUa = userAgent.includes("vercel-cron") || userAgent.includes("vercel");
+  const isManagedCronCall = hasVercelCronHeader || isVercelCronUa;
   if (!secret) {
-    return req.headers.has("x-vercel-cron");
+    return isManagedCronCall;
   }
   const auth = req.headers.get("authorization") || "";
-  return auth === `Bearer ${secret}`;
+  if (auth === `Bearer ${secret}`) return true;
+  // Fallback for Vercel-managed cron invocations in case Authorization header is not attached.
+  return isManagedCronCall;
 }
 
 export function baseUrl(): string {

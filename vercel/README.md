@@ -39,7 +39,9 @@ Set these in Vercel Project Settings > Environment Variables.
 
 ## 4) Cron schedules (already in `vercel.json`, UTC)
 - `59 14 * * *` -> KST 23:59 collect/write tomorrow draft + email
+- `5 15 * * *` -> KST 00:05 collect/write tomorrow draft backup run
 - `0 0 * * *` -> KST 09:00 auto post
+- `10 0 * * *` -> KST 09:10 auto post backup run
 - `10 15 * * *` -> KST 00:10 Threads long-lived token refresh
 
 Collection policy:

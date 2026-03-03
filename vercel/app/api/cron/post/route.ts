@@ -25,9 +25,21 @@ export async function GET(req: Request) {
   const today = kstDate();
   const { startUtc, endUtc } = kstDayBoundsUtc(today);
 
-  const { data: draft, error } = await db.from("drafts").select("id,post,draft_date,status").eq("draft_date", today).single();
+  let { data: draft, error } = await db.from("drafts").select("id,post,draft_date,status").eq("draft_date", today).single();
   if (error || !draft) {
-    return notFoundResponse("오늘 게시할 초안이 없습니다.");
+    // Self-heal: if today's draft is missing, try the latest pending/regenerated draft not newer than today.
+    const fallback = await db
+      .from("drafts")
+      .select("id,post,draft_date,status")
+      .lte("draft_date", today)
+      .in("status", ["pending", "regenerated"])
+      .order("draft_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    draft = fallback.data || null;
+  }
+  if (!draft) {
+    return notFoundResponse("게시 가능한 초안이 없습니다.");
   }
 
   // Hard guard: never publish more than once per KST day.
