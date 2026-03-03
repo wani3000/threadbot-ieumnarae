@@ -38,14 +38,39 @@ function sanitizeGeneratedPost(raw: string): string {
     "아니면 제 프로필 링크도 참고해보세요",
     "이음나래아카데미 나래쌤",
     "ieumnarae.com",
+    "최신 채용 소식과 면접 자료를 제공해드려요",
+    "1:1 과외도 진행 중이에요",
+    "소중한 기회를 놓치지 않도록 도와드릴게요",
+    "댓글 남겨주세요",
+    "댓글로 알려주세요",
   ];
   const lines = raw
     .split("\n")
     .filter((line) => {
       const low = line.toLowerCase();
+      if (/https?:\/\//i.test(line)) return false;
+      if (/\[[^\]]+\]\((https?:\/\/|manual:\/\/)[^)]+\)/i.test(line)) return false;
+      if (/댓글|dm|문의|신청|상담/i.test(line) && /(남겨|주세요|해요|바랍니다)/.test(line)) return false;
+      if (/제공해드려요|도와드릴게요|과외도 진행 중/i.test(line)) return false;
       return !banned.some((b) => low.includes(b.toLowerCase()));
     });
-  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  const cleaned = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return ensureHeartEnding(cleaned);
+}
+
+function ensureHeartEnding(text: string): string {
+  const lines = text.split("\n");
+  const lastNumberIdx = [...lines].reverse().findIndex((v) => /^\s*5\s*\/\s*5\s*$/.test(v.trim()));
+  if (lastNumberIdx === -1) return text;
+  const idx = lines.length - 1 - lastNumberIdx;
+  for (let i = idx - 1; i >= 0; i -= 1) {
+    const t = lines[i].trim();
+    if (!t) continue;
+    if (/^\d+\s*\/\s*\d+$/.test(t)) continue;
+    if (!t.includes("❤️")) lines[i] = `${t.replace(/[.!?]+$/g, "").trim()} ❤️`;
+    break;
+  }
+  return lines.join("\n");
 }
 
 export async function generatePostDetailed(
@@ -124,7 +149,12 @@ export async function generatePostDetailed(
             "사실은 [팩트]에 있는 내용만 사용한다.",
             "과장/추측/지어낸 후기 금지.",
             "프로필 링크/개인 사이트 링크/ieumnarae.com/이음나래아카데미 문구 금지.",
-            "마지막 슬라이드에만 원문 링크 1~2개를 넣는다.",
+            "본문/마지막 모두 링크 금지.",
+            "자기 서비스 홍보 문장(제공해드려요/과외 진행 중/도와드릴게요) 금지.",
+            "댓글 유도 문장 금지.",
+            "쉬운 평서문으로 작성하고 어려운 용어를 피한다.",
+            "마지막 슬라이드 마지막 문장은 반드시 ❤️ 로 끝낸다.",
+            "각 슬라이드의 마무리 문장에는 가끔 :)를 넣되 과하지 않게 사용한다.",
             "너무 짧게 쓰지 말고, 전체 분량은 충분히 풍부하게 쓴다.",
             "딱딱하지 않게 중간 문장에 이모티콘을 자연스럽게 1~2개 사용한다.",
             "각 슬라이드 마지막 문장에는 이모티콘 1개를 붙여 마무리한다.",
@@ -159,7 +189,7 @@ export async function generatePostDetailed(
           {
             role: "system",
             content:
-              "이전 결과가 너무 짧았습니다. 반드시 5슬라이드, 슬라이드당 5~8줄(마지막 줄은 넘버링), 총 정보량을 충분히 늘려 다시 작성하세요. 중간 문장 이모티콘 1~2개, 슬라이드 마지막 문장 이모티콘 1개도 적용하세요.",
+              "이전 결과가 너무 짧았습니다. 반드시 5슬라이드, 슬라이드당 5~8줄(마지막 줄은 넘버링), 총 정보량을 충분히 늘려 다시 작성하세요. 링크/댓글유도/자기홍보 문장은 금지, 마지막 문장은 ❤️, 쉬운 평서문 사용, 마무리 문장에 가끔 :)를 적용하세요.",
           },
           {
             role: "user",
@@ -192,7 +222,6 @@ export async function generatePost(signals: Signal[], styleSample: string): Prom
 }
 
 function fallbackPost(signals: Signal[]): string {
-  const top = signals.slice(0, 3);
   const lines: string[] = [
     "공고 전 공백기죠?",
     "이때 방향을 잡아야",
@@ -225,14 +254,11 @@ function fallbackPost(signals: Signal[]): string {
     "오늘 요약할게요.",
     "정보선별 + 자소서틀 +",
     "면접루틴이 기본이에요.",
-    "내일 바로 실행해요.",
-    "원문도 확인하세요.",
+    "내일 바로 실행해요 :)",
+    "천천히 해도 괜찮아요 ❤️",
   ];
-  for (const item of top) {
-    lines.push(item.link);
-  }
-  lines.push("저장해두고");
-  lines.push("다음 공고 같이 봐요.");
+  lines.push("오늘은 여기까지예요.");
+  lines.push("내일도 함께 준비해요.");
   lines.push("5/5");
-  return lines.join("\n");
+  return ensureHeartEnding(lines.join("\n"));
 }
