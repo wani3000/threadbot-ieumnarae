@@ -270,6 +270,7 @@ export default async function HomePage() {
             <tr>
               <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>요일</th>
               <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>고정 카테고리</th>
+              <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>예시</th>
             </tr>
           </thead>
           <tbody>
@@ -277,6 +278,7 @@ export default async function HomePage() {
               <tr key={row.weekday}>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{row.weekday}</td>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{row.category}</td>
+                <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{row.example}</td>
               </tr>
             ))}
           </tbody>

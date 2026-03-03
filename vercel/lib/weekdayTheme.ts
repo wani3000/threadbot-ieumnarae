@@ -63,15 +63,15 @@ export function getWeekdayTheme(dateKst: string): WeekdayTheme {
   return THEMES[weekdayKstFromDate(dateKst)];
 }
 
-export function getWeekdayThemeTable(): Array<{ weekday: string; category: string }> {
+export function getWeekdayThemeTable(): Array<{ weekday: string; category: string; example: string }> {
   return [
-    { weekday: "월요일", category: THEMES[1].category },
-    { weekday: "화요일", category: THEMES[2].category },
-    { weekday: "수요일", category: THEMES[3].category },
-    { weekday: "목요일", category: THEMES[4].category },
-    { weekday: "금요일", category: THEMES[5].category },
-    { weekday: "토요일", category: THEMES[6].category },
-    { weekday: "일요일", category: THEMES[0].category },
+    { weekday: "월요일", category: THEMES[1].category, example: THEMES[1].example },
+    { weekday: "화요일", category: THEMES[2].category, example: THEMES[2].example },
+    { weekday: "수요일", category: THEMES[3].category, example: THEMES[3].example },
+    { weekday: "목요일", category: THEMES[4].category, example: THEMES[4].example },
+    { weekday: "금요일", category: THEMES[5].category, example: THEMES[5].example },
+    { weekday: "토요일", category: THEMES[6].category, example: THEMES[6].example },
+    { weekday: "일요일", category: THEMES[0].category, example: THEMES[0].example },
   ];
 }
 
