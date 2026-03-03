@@ -21,15 +21,15 @@ function isNumbering(line: string): boolean {
 
 function isTooShortPost(text: string): boolean {
   const slides = splitSlides(text);
-  if (slides.length < 5) return true;
+  if (slides.length < 2) return true;
   const allLines = text
     .split("\n")
     .map((v) => v.trim())
     .filter(Boolean);
   const contentLines = allLines.filter((l) => !isNumbering(l));
-  if (contentLines.length < 20) return true;
+  if (contentLines.length < 10) return true;
   const totalChars = contentLines.reduce((acc, cur) => acc + cur.length, 0);
-  if (totalChars < 220) return true;
+  if (totalChars < 140) return true;
   return false;
 }
 
@@ -60,7 +60,7 @@ function sanitizeGeneratedPost(raw: string): string {
 
 function ensureHeartEnding(text: string): string {
   const lines = text.split("\n");
-  const lastNumberIdx = [...lines].reverse().findIndex((v) => /^\s*5\s*\/\s*5\s*$/.test(v.trim()));
+  const lastNumberIdx = [...lines].reverse().findIndex((v) => /^\s*2\s*\/\s*2\s*$/.test(v.trim()));
   if (lastNumberIdx === -1) return text;
   const idx = lines.length - 1 - lastNumberIdx;
   for (let i = idx - 1; i >= 0; i -= 1) {
@@ -140,8 +140,8 @@ export async function generatePostDetailed(
           content: [
             "아래 가이드를 반드시 준수한다.",
             FULL_CONTENT_GUIDE,
-            "출력은 반드시 5슬라이드로 작성한다.",
-            "슬라이드마다 5~8줄을 쓰고 마지막 줄을 1/5, 2/5, 3/5, 4/5, 5/5 순서 넘버링으로 끝낸다.",
+            "출력은 반드시 본문 1개 + 이어지는 글 1개, 총 2개로 작성한다.",
+            "각 게시글은 5~8줄을 쓰고 마지막 줄을 1/2, 2/2 넘버링으로 끝낸다.",
             "슬라이드 사이에는 빈 줄 하나만 둔다.",
             "'슬라이드 1:' 같은 라벨 금지.",
             "굵게(**)나 번호목록 마크다운 금지.",
@@ -153,7 +153,7 @@ export async function generatePostDetailed(
             "자기 서비스 홍보 문장(제공해드려요/과외 진행 중/도와드릴게요) 금지.",
             "댓글 유도 문장 금지.",
             "쉬운 평서문으로 작성하고 어려운 용어를 피한다.",
-            "마지막 슬라이드 마지막 문장은 반드시 ❤️ 로 끝낸다.",
+            "두 번째 게시글 마지막 문장은 반드시 ❤️ 로 끝낸다.",
             "각 슬라이드의 마무리 문장에는 가끔 :)를 넣되 과하지 않게 사용한다.",
             "너무 짧게 쓰지 말고, 전체 분량은 충분히 풍부하게 쓴다.",
             "딱딱하지 않게 중간 문장에 이모티콘을 자연스럽게 1~2개 사용한다.",
@@ -166,7 +166,7 @@ export async function generatePostDetailed(
             `[스타일 샘플]\n${styleSample}`,
             `[팩트]\n${facts}`,
             "오늘 주제: 최근 일주일 항공사 채용 업데이트",
-            "슬라이드 수: 5",
+            "게시글 수: 2 (본문 + 이어지는 글 1개)",
             "요청: 가이드 전부 반영해서 스레드 초안 1개 작성",
             extraPrompt ? `추가 요청: ${extraPrompt}` : "",
           ]
@@ -189,7 +189,7 @@ export async function generatePostDetailed(
           {
             role: "system",
             content:
-              "이전 결과가 너무 짧았습니다. 반드시 5슬라이드, 슬라이드당 5~8줄(마지막 줄은 넘버링), 총 정보량을 충분히 늘려 다시 작성하세요. 링크/댓글유도/자기홍보 문장은 금지, 마지막 문장은 ❤️, 쉬운 평서문 사용, 마무리 문장에 가끔 :)를 적용하세요.",
+              "이전 결과가 너무 짧았습니다. 반드시 2개 게시글(본문+이어지는 글1개), 각 5~8줄(마지막 줄은 1/2,2/2), 총 정보량을 충분히 늘려 다시 작성하세요. 링크/댓글유도/자기홍보 문장은 금지, 마지막 문장은 ❤️, 쉬운 평서문 사용, 마무리 문장에 가끔 :)를 적용하세요.",
           },
           {
             role: "user",
@@ -197,7 +197,7 @@ export async function generatePostDetailed(
               `[스타일 샘플]\n${styleSample}`,
               `[팩트]\n${facts}`,
               "오늘 주제: 최근 일주일 항공사 채용 업데이트",
-              "슬라이드 수: 5",
+              "게시글 수: 2 (본문 + 이어지는 글 1개)",
               "요청: 내용 밀도를 높여 풍부하게 작성",
               extraPrompt ? `추가 요청: ${extraPrompt}` : "",
             ]
@@ -228,28 +228,14 @@ function fallbackPost(signals: Signal[]): string {
     "합격 속도가 나요.",
     "저도 이 시기에",
     "루틴부터 만들었어요.",
-    "1/5",
+    "1/2",
     "",
     "첫 번째는 정보선별.",
     "공식 채용 링크와",
     "강사/인플루언서 글을",
     "따로 정리해보세요.",
     "섞어보면 흐름이 보여요.",
-    "2/5",
-    "",
-    "두 번째는 자소서 틀.",
-    "문항별 3줄 답부터",
-    "미리 써두는 거예요.",
-    "공고가 열리면",
-    "속도가 완전히 달라져요.",
-    "3/5",
-    "",
-    "세 번째는 면접 루틴.",
-    "30초/60초 버전으로",
-    "같은 답을 나눠 준비.",
-    "표정/시선/자세까지",
-    "영상으로 꼭 점검하세요.",
-    "4/5",
+    "2/2",
     "",
     "오늘 요약할게요.",
     "정보선별 + 자소서틀 +",
@@ -257,8 +243,5 @@ function fallbackPost(signals: Signal[]): string {
     "내일 바로 실행해요 :)",
     "천천히 해도 괜찮아요 ❤️",
   ];
-  lines.push("오늘은 여기까지예요.");
-  lines.push("내일도 함께 준비해요.");
-  lines.push("5/5");
   return ensureHeartEnding(lines.join("\n"));
 }

@@ -4,7 +4,7 @@ function splitSlides(postText: string): string[] {
   const lines = postText.split("\n");
   const numberedSlides: string[] = [];
   let buf: string[] = [];
-  const numbering = /^\s*([1-5])\s*\/\s*5\s*$/;
+  const numbering = /^\s*([1-2])\s*\/\s*2\s*$/;
 
   for (const raw of lines) {
     const line = raw.trimEnd();
@@ -22,8 +22,8 @@ function splitSlides(postText: string): string[] {
     if (tail) numberedSlides.push(tail);
   }
 
-  if (numberedSlides.length >= 5) return numberedSlides.slice(0, 5);
-  if (numberedSlides.length >= 2) return numberedSlides;
+  if (numberedSlides.length >= 2) return numberedSlides.slice(0, 2);
+  if (numberedSlides.length >= 1) return numberedSlides;
 
   return postText
     .split(/\n\s*\n+/)
