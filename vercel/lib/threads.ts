@@ -22,6 +22,7 @@ function splitSlides(postText: string): string[] {
     if (tail) numberedSlides.push(tail);
   }
 
+  if (numberedSlides.length >= 5) return numberedSlides.slice(0, 5);
   if (numberedSlides.length >= 2) return numberedSlides;
 
   return postText
