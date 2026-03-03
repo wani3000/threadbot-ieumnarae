@@ -114,6 +114,16 @@ export async function publishThreads(
         publish = await publishContainer(token, creationId);
         publishedId = (publish.json as { id?: string })?.id;
       }
+      if ((!publish.ok || !publishedId) && isMediaNotFound(publish.json)) {
+        // Fallback: recreate as standalone and publish, so a single failing reply chain does not abort all slides.
+        const standaloneCreate = await createTextContainer(token, text);
+        const standaloneCreationId = (standaloneCreate.json as { id?: string })?.id;
+        if (standaloneCreate.ok && standaloneCreationId) {
+          publish = await publishContainer(token, standaloneCreationId);
+          publishedId = (publish.json as { id?: string })?.id;
+          if (publish.ok && publishedId) detachedIndices.push(i);
+        }
+      }
       if (!publish.ok || !publishedId) {
         return {
           ok: false,
