@@ -71,6 +71,9 @@ Collection policy:
 - Token operations:
   - `GET /api/cron/token-refresh` refreshes a long-lived Threads token (`th_refresh_token`) and stores latest token/expiry in Supabase.
   - Post cron (`/api/cron/post`) also auto-attempts one refresh/retry when token error(code 190) is detected.
+- Cron run logs:
+  - Cron endpoints write latest result to `public.cron_runs`.
+  - Dashboard top card shows last success/failure reason per cron.
 
 ## 6) Email edit flow
 Morning email includes tomorrow 09:00 scheduled draft link:

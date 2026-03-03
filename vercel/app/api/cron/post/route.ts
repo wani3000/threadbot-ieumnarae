@@ -4,6 +4,7 @@ import { cronUnauthorizedResponse, notFoundResponse, serverErrorResponse } from 
 import { supabaseAdmin } from "@/lib/supabase";
 import { publishThreads } from "@/lib/threads";
 import { getThreadsPublishToken, isThreadsTokenError, refreshThreadsLongLivedToken, setThreadsPublishToken } from "@/lib/threadsToken";
+import { safeRecordCronRun } from "@/lib/cronRun";
 
 function kstDate(): string {
   return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" })).toISOString().slice(0, 10);
@@ -39,6 +40,13 @@ export async function GET(req: Request) {
     draft = fallback.data || null;
   }
   if (!draft) {
+    await safeRecordCronRun(db, {
+      cronName: "post",
+      ok: false,
+      statusCode: 404,
+      summary: "게시 가능한 초안 없음",
+      details: { draft_date: today },
+    });
     return notFoundResponse("게시 가능한 초안이 없습니다.");
   }
 
@@ -50,9 +58,23 @@ export async function GET(req: Request) {
     .lt("posted_at", endUtc)
     .limit(1);
   if (postCheckErr) {
+    await safeRecordCronRun(db, {
+      cronName: "post",
+      ok: false,
+      statusCode: 500,
+      summary: "중복 게시 점검 실패",
+      details: { error: String(postCheckErr) },
+    });
     return serverErrorResponse("api/cron/post post-check", postCheckErr);
   }
   if ((todayPosts || []).length > 0 || draft.status === "posted") {
+    await safeRecordCronRun(db, {
+      cronName: "post",
+      ok: true,
+      statusCode: 200,
+      summary: "오늘 이미 게시됨(스킵)",
+      details: { draft_date: today },
+    });
     return NextResponse.json({
       ok: true,
       skipped: true,
@@ -79,6 +101,17 @@ export async function GET(req: Request) {
   });
 
   await db.from("drafts").update({ status: publish.ok ? "posted" : "failed", updated_at: new Date().toISOString() }).eq("id", draft.id);
+  await safeRecordCronRun(db, {
+    cronName: "post",
+    ok: publish.ok,
+    statusCode: publish.status,
+    summary: publish.ok ? "게시 성공" : "게시 실패",
+    details: {
+      draft_id: draft.id,
+      draft_date: draft.draft_date,
+      result: publish.body,
+    },
+  });
 
   return NextResponse.json({ ok: publish.ok, status: publish.status, result: publish.body });
 }

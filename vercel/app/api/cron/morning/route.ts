@@ -8,6 +8,7 @@ import { sendDraftEmail } from "@/lib/email";
 import { syncDefaultSources } from "@/lib/sourceSync";
 import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 import { getWriteMode } from "@/lib/writeMode";
+import { safeRecordCronRun } from "@/lib/cronRun";
 import type { Signal, Source } from "@/lib/types";
 
 function kstDate(offsetDays = 0): string {
@@ -65,6 +66,13 @@ export async function GET(req: Request) {
       .select("name,url,enabled")
       .eq("enabled", true);
     if (sourceErr) {
+      await safeRecordCronRun(db, {
+        cronName: "morning",
+        ok: false,
+        statusCode: 500,
+        summary: "소스 조회 실패",
+        details: { error: String(sourceErr) },
+      });
       return serverErrorResponse("api/cron/morning sources", sourceErr);
     }
 
@@ -121,6 +129,13 @@ export async function GET(req: Request) {
     .single();
 
   if (draftErr) {
+    await safeRecordCronRun(db, {
+      cronName: "morning",
+      ok: false,
+      statusCode: 500,
+      summary: "내일 초안 저장 실패",
+      details: { error: String(draftErr), targetDate },
+    });
     return serverErrorResponse("api/cron/morning upsert-draft", draftErr);
   }
 
@@ -131,6 +146,22 @@ export async function GET(req: Request) {
     subject: `[ThreadBot] ${targetDate} 09:00 자동게시 예정 초안`,
     post,
     editUrl,
+  });
+
+  await safeRecordCronRun(db, {
+    cronName: "morning",
+    ok: true,
+    statusCode: 200,
+    summary: "수집/초안 생성 성공",
+    details: {
+      quick,
+      writeMode,
+      targetDate,
+      signals: signals.length,
+      sourceSignals: allSignals.length - keywordSignals.length,
+      keywordSignals: keywordSignals.length,
+      includeOfficialToday,
+    },
   });
 
   return NextResponse.json({

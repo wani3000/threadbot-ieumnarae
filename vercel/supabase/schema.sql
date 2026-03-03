@@ -42,6 +42,16 @@ create table if not exists public.posts (
   posted_at timestamptz not null default now()
 );
 
+create table if not exists public.cron_runs (
+  id bigint generated always as identity primary key,
+  cron_name text not null,
+  run_at timestamptz not null default now(),
+  ok boolean not null,
+  status_code int,
+  summary text not null,
+  details jsonb
+);
+
 insert into public.sources(name, url, enabled)
 values
   ('koreanair-recruit', 'https://koreanair.recruiter.co.kr/career/apply', true),

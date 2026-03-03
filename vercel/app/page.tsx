@@ -30,12 +30,13 @@ async function getHomeData() {
   weekAgo.setDate(now.getDate() - 7);
   const weekAgoIso = weekAgo.toISOString();
 
-  const [{ data: posts }, { data: drafts }, { data: signals }, { data: sources }, { data: tomorrowDraft }] = await Promise.all([
+  const [{ data: posts }, { data: drafts }, { data: signals }, { data: sources }, { data: tomorrowDraft }, { data: cronRuns }] = await Promise.all([
     db.from("posts").select("posted_at,post").gte("posted_at", weekAgoIso).order("posted_at", { ascending: false }).limit(10),
     db.from("drafts").select("draft_date,post,status,approved,updated_at").order("draft_date", { ascending: false }).limit(5),
     db.from("signals").select("source_name,title,link,summary,published_at,airline,role,confidence").gte("created_at", weekAgoIso).order("published_at", { ascending: false }).limit(200),
     db.from("sources").select("name,url,enabled").order("created_at", { ascending: true }),
     db.from("drafts").select("draft_date,post,status,approved,updated_at,source_json").eq("draft_date", tomorrow).maybeSingle(),
+    db.from("cron_runs").select("cron_name,run_at,ok,status_code,summary,details").order("run_at", { ascending: false }).limit(30),
   ]);
 
   return {
@@ -45,9 +46,29 @@ async function getHomeData() {
     signals: (signals || []) as Signal[],
     sources: sources || [],
     tomorrowDraft: tomorrowDraft || null,
+    cronRuns: cronRuns || [],
     tokenExpiresAt: await getThreadsTokenExpiresAt(db),
     tokenHealth: await checkThreadsTokenHealth(db),
   };
+}
+
+function latestCronByName(
+  runs: Array<{ cron_name: string; run_at: string; ok: boolean; status_code: number | null; summary: string; details?: Record<string, unknown> | null }>,
+  cronName: string,
+) {
+  return runs.find((r) => r.cron_name === cronName) || null;
+}
+
+function cronDetailMessage(details: Record<string, unknown> | null | undefined): string {
+  if (!details) return "-";
+  const error = details.error;
+  if (typeof error === "string" && error.trim()) return error;
+  const result = details.result;
+  if (result && typeof result === "object") {
+    const msg = (result as { error?: { message?: string }; message?: string })?.error?.message || (result as { message?: string }).message;
+    if (typeof msg === "string" && msg.trim()) return msg;
+  }
+  return "-";
 }
 
 function tokenRemainDays(expiresAt: string | null): number | null {
@@ -149,10 +170,57 @@ export default async function HomePage() {
   const collected = summarizeCollected(tomorrowSignals);
   const priorityCount = sourcePriorityCounts(tomorrowSignals);
   const remainDays = tokenRemainDays(data.tokenExpiresAt);
+  const lastMorning = latestCronByName(
+    data.cronRuns as Array<{ cron_name: string; run_at: string; ok: boolean; status_code: number | null; summary: string; details?: Record<string, unknown> | null }>,
+    "morning",
+  );
+  const lastPost = latestCronByName(
+    data.cronRuns as Array<{ cron_name: string; run_at: string; ok: boolean; status_code: number | null; summary: string; details?: Record<string, unknown> | null }>,
+    "post",
+  );
+  const lastTokenRefresh = latestCronByName(
+    data.cronRuns as Array<{ cron_name: string; run_at: string; ok: boolean; status_code: number | null; summary: string; details?: Record<string, unknown> | null }>,
+    "token-refresh",
+  );
 
   return (
     <main style={{ maxWidth: 980, margin: "0 auto", padding: "24px", fontFamily: "system-ui, sans-serif" }}>
       <h1>ThreadBot Dashboard (Vercel)</h1>
+
+      <section>
+        <h2>마지막 Cron 실행 결과</h2>
+        {data.cronRuns.length === 0 ? (
+          <p>아직 cron 실행 로그가 없습니다. (DB에 cron_runs 테이블 생성 후 표시)</p>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {[
+              { label: "초안 생성 (23:59)", row: lastMorning },
+              { label: "자동 게시 (09:00)", row: lastPost },
+              { label: "토큰 갱신 (00:10)", row: lastTokenRefresh },
+            ].map((item) => (
+              <article key={item.label} style={{ border: "1px solid #ddd", borderRadius: 8, padding: 12 }}>
+                <p style={{ margin: 0 }}>
+                  <strong>{item.label}</strong>
+                </p>
+                {!item.row ? (
+                  <p style={{ margin: "8px 0 0" }}>실행 이력 없음</p>
+                ) : (
+                  <>
+                    <p style={{ margin: "8px 0 0" }}>
+                      상태:{" "}
+                      <strong style={{ color: item.row.ok ? "#0a7f2e" : "#b42318" }}>{item.row.ok ? "성공" : "실패"}</strong>
+                      {" / "}시각: {new Date(item.row.run_at).toLocaleString("ko-KR")}
+                      {" / "}코드: {item.row.status_code ?? "-"}
+                    </p>
+                    <p style={{ margin: "4px 0 0" }}>요약: {item.row.summary}</p>
+                    <p style={{ margin: "4px 0 0" }}>실패사유: {item.row.ok ? "-" : cronDetailMessage(item.row.details)}</p>
+                  </>
+                )}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section>
         <h2>Threads 토큰 상태</h2>
