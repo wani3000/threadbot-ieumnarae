@@ -8,7 +8,7 @@ import TomorrowDraftPanel from "@/components/TomorrowDraftPanel";
 import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 import { FULL_CONTENT_GUIDE, RULE_CHECKLIST } from "@/lib/contentGuide";
 import { checkThreadsTokenHealth, getThreadsTokenExpiresAt } from "@/lib/threadsToken";
-import { getWeekdayTheme, getWeekdayThemeTable } from "@/lib/weekdayTheme";
+import { getPostingTheme, getPostingThemeRotationStartDate, getPostingThemeTable } from "@/lib/postingTheme";
 import { kstDate, nextPostingDate } from "@/lib/kst";
 
 export const dynamic = "force-dynamic";
@@ -77,7 +77,7 @@ function tokenRemainDays(expiresAt: string | null): number | null {
 function recommended(signals: Signal[]) {
   return signals.slice(0, 5).map((s) => ({
     title: s.title,
-    post: `[이번 주 취업 체크]\n${s.title}\n\n핵심: ${s.summary}\n원문: ${s.link}`,
+    post: `주제: ${s.title}\n\n핵심: ${s.summary}\n\n이 포인트를 어떻게 글로 풀지 미리 점검합니다.`,
   }));
 }
 
@@ -166,8 +166,8 @@ export default async function HomePage() {
   const collected = summarizeCollected(tomorrowSignals);
   const priorityCount = sourcePriorityCounts(tomorrowSignals);
   const remainDays = tokenRemainDays(data.tokenExpiresAt);
-  const tomorrowTheme = getWeekdayTheme(data.tomorrow);
-  const weekdayThemeTable = getWeekdayThemeTable();
+  const tomorrowTheme = getPostingTheme(data.tomorrow);
+  const postingThemeTable = getPostingThemeTable();
   const lastMorning = latestCronByName(
     data.cronRuns as Array<{ cron_name: string; run_at: string; ok: boolean; status_code: number | null; summary: string; details?: Record<string, unknown> | null }>,
     "morning",
@@ -256,22 +256,23 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <h2>요일별 고정 카테고리</h2>
+        <h2>평일 게시 시 7개 주제 순환</h2>
         <p>
-          다음 게시일({data.tomorrow}) 예정 카테고리: <strong>{tomorrowTheme.weekday} / {tomorrowTheme.category}</strong>
+          다음 게시일({data.tomorrow}) 예정 주제: <strong>{tomorrowTheme.order}번 / {tomorrowTheme.category}</strong>
         </p>
+        <p>순환 시작 기준일: {getPostingThemeRotationStartDate()} / 토·일은 순환에서 제외됩니다.</p>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>요일</th>
-              <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>고정 카테고리</th>
+              <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>순번</th>
+              <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>주제</th>
               <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: "8px" }}>예시</th>
             </tr>
           </thead>
           <tbody>
-            {weekdayThemeTable.map((row) => (
-              <tr key={row.weekday}>
-                <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{row.weekday}</td>
+            {postingThemeTable.map((row) => (
+              <tr key={row.order}>
+                <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{row.order}</td>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{row.category}</td>
                 <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
                   <div>{row.example}</div>
@@ -399,7 +400,7 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <h2>내일 업로드예정글을 위한 수집 내용</h2>
+        <h2>다음 게시일 글 작성을 위한 수집 내용</h2>
         {tomorrowSignals.length === 0 ? (
           <p>수집 요약이 아직 없습니다.</p>
         ) : (

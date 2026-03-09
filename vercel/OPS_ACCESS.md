@@ -12,10 +12,10 @@ To confirm that the 09:30 retry run skips with `already_posted_today`, you need 
 ## Vercel CLI
 
 ### Installed locally
-The project now has `vercel` installed as a local dev dependency in [`/Users/hanwha/Documents/New project/threadbot/vercel/package.json`](/Users/hanwha/Documents/New%20project/threadbot/vercel/package.json).
+The project now has `vercel` installed as a local dev dependency in [`vercel/package.json`](./package.json).
 
 ### Common commands
-Run from [`/Users/hanwha/Documents/New project/threadbot/vercel`](/Users/hanwha/Documents/New%20project/threadbot/vercel):
+Run from [`vercel/`](.).
 
 ```bash
 npx vercel login
@@ -29,11 +29,11 @@ If your team already linked the project before, `npx vercel link` will connect t
 ## Supabase query script
 
 ### Script
-[`/Users/hanwha/Documents/New project/threadbot/vercel/scripts/query-cron-runs.sh`](/Users/hanwha/Documents/New%20project/threadbot/vercel/scripts/query-cron-runs.sh)
+[`vercel/scripts/query-cron-runs.sh`](./scripts/query-cron-runs.sh)
 
 ### Example usage
 ```bash
-cd /Users/hanwha/Documents/New\ project/threadbot/vercel
+cd /Users/chulwan/Documents/GitHub/threadbot/vercel
 
 SUPABASE_URL="https://your-project.supabase.co" \
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
@@ -44,7 +44,7 @@ LIMIT="20" \
 
 ### Example: only today's post runs
 ```bash
-cd /Users/hanwha/Documents/New\ project/threadbot/vercel
+cd /Users/chulwan/Documents/GitHub/threadbot/vercel
 
 SUPABASE_URL="https://your-project.supabase.co" \
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \

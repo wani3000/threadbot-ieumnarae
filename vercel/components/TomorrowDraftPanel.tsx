@@ -27,7 +27,7 @@ export default function TomorrowDraftPanel({ draftDate }: { draftDate: string })
     setLoading(false);
     if (!res.ok) {
       setDraft(null);
-      setMsg(data.error || "내일 초안을 불러오지 못했습니다.");
+      setMsg(data.error || "다음 게시일 초안을 불러오지 못했습니다.");
       return;
     }
     setDraft(data as Draft);
@@ -37,12 +37,12 @@ export default function TomorrowDraftPanel({ draftDate }: { draftDate: string })
     load();
   }, [load]);
 
-  if (loading) return <p>내일 초안 불러오는 중...</p>;
+  if (loading) return <p>다음 게시일 초안 불러오는 중...</p>;
 
   if (!draft) {
     return (
       <div>
-        <p>내일({draftDate}) 예정 초안이 아직 없습니다. 오늘 23:59(KST) 수집/작성 후 표시됩니다.</p>
+        <p>다음 게시일({draftDate}) 예정 초안이 아직 없습니다. 다음 수집 실행 후 표시됩니다.</p>
         {msg ? <p>{msg}</p> : null}
       </div>
     );
@@ -56,7 +56,7 @@ export default function TomorrowDraftPanel({ draftDate }: { draftDate: string })
       </p>
       <pre style={{ whiteSpace: "pre-wrap" }}>{draft.post}</pre>
       <p style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <Link href={`/edit?date=${draft.draft_date}`}>내일 글 수정하기</Link>
+        <Link href={`/edit?date=${draft.draft_date}`}>다음 게시일 글 수정하기</Link>
         <button onClick={load}>새로고침</button>
       </p>
       <RegenerateDraftButton draftDate={draft.draft_date} onDone={load} />

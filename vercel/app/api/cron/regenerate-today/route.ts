@@ -6,7 +6,7 @@ import { generatePostDetailed } from "@/lib/generate";
 import { getWriteMode } from "@/lib/writeMode";
 import type { Signal } from "@/lib/types";
 import { safeRecordCronRun } from "@/lib/cronRun";
-import { getWeekdayThemePrompt, isPostMatchingWeekdayTheme } from "@/lib/weekdayTheme";
+import { getPostingThemePrompt, isPostMatchingPostingTheme } from "@/lib/postingTheme";
 import { kstDate } from "@/lib/kst";
 
 export async function GET(req: Request) {
@@ -53,16 +53,16 @@ export async function GET(req: Request) {
     let regen = await generatePostDetailed(
       signals,
       style,
-      `${getWeekdayThemePrompt(draft.draft_date)}\n링크 금지/댓글유도 금지/자기홍보 금지/마지막 ❤️ 규칙을 강하게 적용해 재작성. 시드:${Date.now()}`,
+      `${getPostingThemePrompt(draft.draft_date)}\n링크 금지/댓글유도 금지/자기홍보 금지/마지막 ❤️ 규칙을 강하게 적용해 재작성. 시드:${Date.now()}`,
       { temperature: 0.95 },
     );
     for (let i = 0; i < 2; i += 1) {
       if (regen.provider !== "openai") break;
-      if (isPostMatchingWeekdayTheme(draft.draft_date, regen.post)) break;
+      if (isPostMatchingPostingTheme(draft.draft_date, regen.post)) break;
       regen = await generatePostDetailed(
         signals,
         style,
-        `${getWeekdayThemePrompt(draft.draft_date)}\n카테고리 불일치로 재작성합니다. 해당 요일 키워드를 명확히 반영하세요. 시드:${Date.now()}-${i}`,
+        `${getPostingThemePrompt(draft.draft_date)}\n주제 불일치로 재작성합니다. 이번 게시 차례의 주제 키워드를 명확히 반영하세요. 시드:${Date.now()}-${i}`,
         { temperature: 1.0 },
       );
     }

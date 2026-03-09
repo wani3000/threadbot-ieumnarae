@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { generatePostDetailed } from "@/lib/generate";
 import { getWriteMode } from "@/lib/writeMode";
 import type { Signal } from "@/lib/types";
+import { getPostingThemePrompt, isPostMatchingPostingTheme } from "@/lib/postingTheme";
 
 function normalizePost(text: string): string {
   return text.replace(/\s+/g, " ").trim();
@@ -116,7 +117,7 @@ export async function POST(req: Request, { params }: { params: { draftDate: stri
     let result = await generatePostDetailed(
       signals,
       style,
-      `기존 초안과 다른 훅/전개로 재작성. 고유 시드:${regenNonce}`,
+      `${getPostingThemePrompt(params.draftDate)}\n기존 초안과 다른 훅/전개로 재작성. 링크 금지, 댓글유도 금지, 자기홍보 금지. 고유 시드:${regenNonce}`,
       { temperature: 0.9 },
     );
     if (result.provider !== "openai") {
@@ -133,7 +134,18 @@ export async function POST(req: Request, { params }: { params: { draftDate: stri
       result = await generatePostDetailed(
         signals,
         style,
-        `기존 글과 반드시 다르게 작성. 새로운 훅 사용. 이전본문첫줄:${oldPost.split("\n")[0] || "-"} 고유시드:${Date.now()}`,
+        `${getPostingThemePrompt(params.draftDate)}\n기존 글과 반드시 다르게 작성. 새로운 훅 사용. 이전본문첫줄:${oldPost.split("\n")[0] || "-"} 고유시드:${Date.now()}`,
+        { temperature: 1.0 },
+      );
+      if (result.provider === "openai") regenerated = result.post;
+    }
+
+    for (let i = 0; i < 2; i += 1) {
+      if (isPostMatchingPostingTheme(params.draftDate, regenerated)) break;
+      result = await generatePostDetailed(
+        signals,
+        style,
+        `${getPostingThemePrompt(params.draftDate)}\n현재 결과가 이번 게시 차례의 주제와 맞지 않습니다. 해당 주제 키워드를 더 분명하게 반영해 다시 작성하세요. 시드:${Date.now()}-${i}`,
         { temperature: 1.0 },
       );
       if (result.provider === "openai") regenerated = result.post;

@@ -47,7 +47,7 @@ export default function RegenerateDraftButton({ draftDate, onDone }: { draftDate
 
   return (
     <div style={{ marginTop: 10 }}>
-      <button onClick={regenerate} disabled={loading}>{loading ? "AI 재작성 중..." : "AI로 내일 글 다시 작성하기"}</button>
+      <button onClick={regenerate} disabled={loading}>{loading ? "AI 재작성 중..." : "AI로 다음 게시일 글 다시 작성하기"}</button>
       {msg ? <p>{msg}</p> : null}
     </div>
   );

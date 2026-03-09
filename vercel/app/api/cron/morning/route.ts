@@ -9,7 +9,7 @@ import { syncDefaultSources } from "@/lib/sourceSync";
 import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 import { getWriteMode } from "@/lib/writeMode";
 import { safeRecordCronRun } from "@/lib/cronRun";
-import { getWeekdayThemePrompt, isPostMatchingWeekdayTheme } from "@/lib/weekdayTheme";
+import { getPostingThemePrompt, isPostMatchingPostingTheme } from "@/lib/postingTheme";
 import { isKstWeekend, kstDate, kstWeekday, nextPostingDate } from "@/lib/kst";
 import type { Signal, Source } from "@/lib/types";
 
@@ -126,10 +126,10 @@ export async function GET(req: Request) {
   const latestPostText = String(latestPostRow?.post || "").trim();
   const latestPostPreview = latestPostText ? latestPostText.split("\n").slice(0, 6).join(" / ") : "";
   const extraPrompt = [
-    getWeekdayThemePrompt(targetDate),
-    "내일 업로드 예정 글은 오늘 이미 게시된 글과 카테고리가 완전히 달라야 합니다.",
+    getPostingThemePrompt(targetDate),
+    "다음 게시일 업로드 예정 글은 직전 게시글과 주제와 전개가 겹치면 안 됩니다.",
     "오늘 글의 훅/전개/예시/핵심 메시지를 반복하지 마세요.",
-    "가능하면 오늘과 다른 카테고리(채용정보형/면접대비형/현실공개형/합격자패턴형/간접세일즈형)로 작성하세요.",
+    "직전 게시글과 훅, 사례, 전개 순서가 겹치지 않게 쓰세요.",
     latestPostPreview ? `오늘 게시글 일부: ${latestPostPreview}` : "",
   ]
     .filter(Boolean)
@@ -137,11 +137,11 @@ export async function GET(req: Request) {
 
   let post = await generatePost(signals, styleSample, extraPrompt);
   for (let i = 0; i < 2; i += 1) {
-    if (isPostMatchingWeekdayTheme(targetDate, post)) break;
+    if (isPostMatchingPostingTheme(targetDate, post)) break;
     post = await generatePost(
       signals,
       styleSample,
-      `${extraPrompt}\n현재 결과가 요일 카테고리와 맞지 않았습니다. 반드시 해당 요일 카테고리 키워드를 반영해 다시 작성하세요.`,
+      `${extraPrompt}\n현재 결과가 이번 게시 차례의 주제와 맞지 않았습니다. 반드시 해당 주제 키워드를 반영해 다시 작성하세요.`,
     );
   }
 
@@ -166,7 +166,7 @@ export async function GET(req: Request) {
       cronName: "morning",
       ok: false,
       statusCode: 500,
-      summary: "내일 초안 저장 실패",
+      summary: "다음 게시일 초안 저장 실패",
       details: { error: String(draftErr), targetDate },
     });
     return serverErrorResponse("api/cron/morning upsert-draft", draftErr);
