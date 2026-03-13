@@ -177,7 +177,7 @@ export async function GET(req: Request) {
   await sendDraftEmail({
     to: getEnv("EMAIL_TO"),
     from: getEnv("EMAIL_FROM"),
-    subject: `[ThreadBot] ${targetDate} 09:00 자동게시 예정 초안`,
+    subject: `[ieumnarae-threadbot] ${targetDate} 09:00 자동게시 예정 초안`,
     post,
     editUrl,
   });

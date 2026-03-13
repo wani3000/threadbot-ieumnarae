@@ -17,8 +17,52 @@ function splitSlides(text: string): string[] {
     .filter(Boolean);
 }
 
+const REALTIME_BANNED_PATTERNS = [
+  /이번\s*주/g,
+  /최근\s*일주일/g,
+  /방금\s*올라온/g,
+  /오늘(은|도|만|부터|의|요)?/g,
+];
+
 function isNumbering(line: string): boolean {
   return /^\d+\/\d+$/.test(line.trim());
+}
+
+function stripRealtimeExpressions(text: string): string {
+  let next = text;
+  for (const pattern of REALTIME_BANNED_PATTERNS) {
+    next = next.replace(pattern, '');
+  }
+  return next
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function normalizeSentenceLines(text: string): string {
+  const paragraphs = text
+    .split(/\n\s*\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const normalizedParagraphs = paragraphs.map((paragraph) => {
+    const compact = paragraph.replace(/\n+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    const pieces = compact
+      .split(/(?<=[.!?❤️🙂😊😉😌✨✈️])\s+/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    return pieces.join('\n');
+  });
+
+  return normalizedParagraphs.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function hasRealtimeExpression(text: string): boolean {
+  return REALTIME_BANNED_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function hasParagraphLines(text: string): boolean {
+  return splitSlides(text).some((paragraph) => paragraph.split('\n').some((line) => line.trim().length > 65));
 }
 
 function isTooShortPost(text: string): boolean {
@@ -49,7 +93,7 @@ function sanitizeGeneratedPost(raw: string): string {
     "댓글로 알려주세요",
     "다음 슬라이드",
   ];
-  const normalizedRaw = raw
+  const normalizedRaw = normalizeSentenceLines(stripRealtimeExpressions(raw))
     // Remove numbering tokens like "1/5", "(2/5)" anywhere in text.
     .replace(/\(?\b\d+\s*\/\s*\d+\b\)?/g, "")
     .replace(/\n{3,}/g, "\n\n");
@@ -66,7 +110,7 @@ function sanitizeGeneratedPost(raw: string): string {
       if (/다음\s*슬라이드/i.test(line)) return false;
       return !banned.some((b) => low.includes(b.toLowerCase()));
     });
-  const cleaned = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  const cleaned = normalizeSentenceLines(lines.join("\n")).replace(/\n{3,}/g, "\n\n").trim();
   return ensureHeartEnding(cleaned);
 }
 
@@ -193,7 +237,7 @@ export async function generatePostDetailed(
       return { post: sanitizeGeneratedPost(fallbackPost(signals)), provider: "fallback", reason: "empty_model_output" };
     }
     let sanitized = sanitizeGeneratedPost(text);
-    if (isTooShortPost(sanitized)) {
+    if (isTooShortPost(sanitized) || hasRealtimeExpression(sanitized) || hasParagraphLines(sanitized)) {
       const retry = await client.chat.completions.create({
         model,
         temperature: Math.max(options?.temperature ?? 0.7, 0.8),
@@ -201,7 +245,7 @@ export async function generatePostDetailed(
           {
             role: "system",
             content:
-              "이전 결과가 너무 짧았습니다. 반드시 4~6문단, 각 문단 4~7줄, 그리고 첫 게시글과 각 연속 스레드 문단은 모두 최소 150자 이상으로 총 정보량을 충분히 늘려 다시 작성하세요. 1/5, 2/5 같은 넘버링은 금지, \"다음 슬라이드\" 문구 금지, 링크/댓글유도/자기홍보 문장은 금지, 마지막 문장은 ❤️, 쉬운 평서문 사용, 마무리 문장에 가끔 :)를 적용하세요.",
+              "이전 결과가 규칙을 지키지 못했습니다. 반드시 한 문장 한 줄로 작성하고, 4~6문단, 각 문단 4~7줄, 첫 게시글과 각 연속 스레드 문단은 모두 최소 150자 이상으로 충분히 길게 작성하세요. 1/5, 2/5 같은 넘버링 금지, \"다음 슬라이드\" 문구 금지, 링크/댓글유도/자기홍보 문장 금지, \"오늘\" \"이번 주\" 같은 실시간성 표현 금지, 마지막 문장은 ❤️, 쉬운 평서문 사용, 마무리 문장에 가끔 :)를 적용하세요.",
           },
           {
             role: "user",

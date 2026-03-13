@@ -27,9 +27,9 @@ TAG_KEYWORDS = [
 
 def run_dashboard() -> None:
     settings = load_settings()
-    st.set_page_config(page_title="ThreadBot Dashboard", layout="wide")
+    st.set_page_config(page_title="ieumnarae-threadbot Dashboard", layout="wide")
 
-    st.title("ThreadBot Dashboard")
+    st.title("ieumnarae-threadbot Dashboard")
     st.caption("Threads 계정 운영 자동화 모니터링")
 
     query_view = str(st.query_params.get("view", "") or "")

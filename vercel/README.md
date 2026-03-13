@@ -1,4 +1,4 @@
-# ThreadBot Vercel Migration (Vercel + Resend + Supabase)
+# ieumnarae-threadbot Vercel Migration (Vercel + Resend + Supabase)
 
 ## 1) Environment Variables
 Set these in Vercel Project Settings > Environment Variables.
@@ -19,7 +19,7 @@ Set these in Vercel Project Settings > Environment Variables.
 - `SOURCE_FETCH_TIMEOUT_MS` (optional, default `8000`)
 - `OFFICIAL_SOURCE_WEEKDAY` (optional, default `1` = Monday KST, official airline sources collected weekly only)
 - `RESEND_API_KEY`
-- `EMAIL_FROM` (Resend verified sender, e.g. `ThreadBot <noreply@yourdomain.com>`)
+- `EMAIL_FROM` (Resend verified sender, e.g. `ieumnarae-threadbot <noreply@yourdomain.com>`)
 - `EMAIL_TO` (`oxaz1234@gmail.com`)
 - `ADMIN_EMAILS` (optional, admin 허용 이메일 CSV. 미입력 시 `EMAIL_TO` 사용)
 - `NEXT_PUBLIC_SUPABASE_URL` (`SUPABASE_URL`와 동일 값)
