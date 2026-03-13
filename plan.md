@@ -27,7 +27,7 @@
 ## 구현 포인트
 ### 1. 날짜와 게시일
 - `vercel/lib/kst.ts`
-- `nextPostingDate(1)`로 다음 평일 게시일 계산
+- `scheduledPostingDate()`로 현재 시점 기준 다음 게시일 계산
 - 주말 요청은 `morning`, `post` cron에서 스킵
 
 ### 2. 주제 선택
@@ -38,16 +38,31 @@
 ### 3. 생성 규칙 강제
 - `vercel/lib/contentGuide.ts`
 - `vercel/lib/generate.ts`
+- `vercel/lib/draftComposer.ts`
 - 프롬프트와 후처리 모두에서 금지 표현 제거
 - 짧은 출력은 재시도
 - 숫자 표기와 `다음 슬라이드`는 생성 후에도 다시 제거
+- 초안 생성과 수동 재작성이 같은 규칙 엔진을 사용해야 한다
 
-### 4. 재작성 경로 정합성
+### 4. 게시 안전장치
+- `vercel/app/api/cron/post/route.ts`
+- 오늘 날짜 초안만 게시
+- 이전 날짜 초안 fallback 금지
+- 게시 전 `publishing` 잠금
+- reply chain 실패 시 detached standalone fallback 금지
+
+### 5. 재작성 경로 정합성
 - `vercel/app/api/cron/regenerate-today/route.ts`
 - `vercel/app/api/drafts/[draftDate]/route.ts`
 - 수동 재작성도 같은 주제 순환 규칙과 금지 규칙을 따라야 한다
 
-### 5. 대시보드 반영
+### 6. 설정 저장 분리
+- `vercel/lib/appSettings.ts`
+- `vercel/lib/writeMode.ts`
+- `vercel/lib/threadsToken.ts`
+- `sources` 특수 row 대신 `app_settings`를 우선 사용한다
+
+### 7. 대시보드 반영
 - `vercel/app/page.tsx`
 - `vercel/components/TomorrowDraftPanel.tsx`
 - `vercel/components/RegenerateDraftButton.tsx`
@@ -61,11 +76,18 @@
 - [x] 첫 게시/연속 게시 최소 150자
 - [x] 7개 주제 순환 로직 도입
 - [x] 생성 가이드 자기모순 제거
+- [x] 이전 날짜 초안 fallback 제거
+- [x] `publishing` 잠금 도입
+- [x] detached standalone fallback 제거
+- [x] 설정 저장 `app_settings` 우선화
+- [x] 초안 생성/재작성 공통화
 - [x] 재작성 API에 동일 규칙 적용
 - [x] 대시보드 문구/표 정리
 - [x] 문서 3종 최신 규칙 기준 업데이트
 
 ## 남은 운영 체크
+- Supabase에 `app_settings` 테이블이 없는 기존 프로젝트라면 `schema.sql` 기준으로 추가
 - 실제 운영 env에서 `POSTING_THEME_ROTATION_START_DATE`를 변경할 필요가 있는지 확인
 - 배포 후 대시보드에서 다음 게시일 주제가 기대 순서대로 나오는지 확인
 - cron 실행 로그에서 `morning/post`가 주말에 스킵되는지 확인
+- 09:00 성공일에 09:30 cron이 `already_publishing` 또는 `already_posted_today`로 스킵되는지 확인

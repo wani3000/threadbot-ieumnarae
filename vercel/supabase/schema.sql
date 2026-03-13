@@ -8,6 +8,12 @@ create table if not exists public.sources (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.app_settings (
+  key text primary key,
+  value_text text,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists public.signals (
   id bigint generated always as identity primary key,
   signal_date date not null,

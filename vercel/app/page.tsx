@@ -9,7 +9,7 @@ import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 import { FULL_CONTENT_GUIDE, RULE_CHECKLIST } from "@/lib/contentGuide";
 import { checkThreadsTokenHealth, getThreadsTokenExpiresAt } from "@/lib/threadsToken";
 import { getPostingTheme, getPostingThemeRotationStartDate, getPostingThemeTable } from "@/lib/postingTheme";
-import { kstDate, nextPostingDate } from "@/lib/kst";
+import { kstDate, scheduledPostingDate } from "@/lib/kst";
 
 export const dynamic = "force-dynamic";
 
@@ -19,14 +19,14 @@ function kstStartIso(dateKst: string): string {
 
 async function getHomeData() {
   const db = supabaseAdmin();
-  const tomorrow = nextPostingDate(1);
+  const tomorrow = scheduledPostingDate();
   const now = new Date();
   const weekAgo = new Date(now);
   weekAgo.setDate(now.getDate() - 7);
   const weekAgoIso = weekAgo.toISOString();
 
   const [{ data: posts }, { data: drafts }, { data: signals }, { data: sources }, { data: tomorrowDraft }, { data: cronRuns }] = await Promise.all([
-    db.from("posts").select("posted_at,post").gte("posted_at", weekAgoIso).order("posted_at", { ascending: false }).limit(10),
+    db.from("posts").select("posted_at,post,publish_result").gte("posted_at", weekAgoIso).order("posted_at", { ascending: false }).limit(20),
     db.from("drafts").select("draft_date,post,status,approved,updated_at").order("draft_date", { ascending: false }).limit(5),
     db.from("signals").select("source_name,title,link,summary,published_at,airline,role,confidence").gte("created_at", weekAgoIso).order("published_at", { ascending: false }).limit(200),
     db.from("sources").select("name,url,enabled").order("created_at", { ascending: true }),
@@ -36,7 +36,7 @@ async function getHomeData() {
 
   return {
     tomorrow,
-    posts: posts || [],
+    posts: (posts || []).filter((row: { publish_result?: { ok?: boolean } | null }) => row.publish_result?.ok === true),
     drafts: drafts || [],
     signals: (signals || []) as Signal[],
     sources: sources || [],

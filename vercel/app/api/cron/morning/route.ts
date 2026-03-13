@@ -3,14 +3,13 @@ import { baseUrl, getEnv, isAuthorizedCron } from "@/lib/env";
 import { cronUnauthorizedResponse, serverErrorResponse } from "@/lib/apiError";
 import { supabaseAdmin } from "@/lib/supabase";
 import { collectFromSource, collectFromThreadsKeywords, dedupeSignals, prioritizeSignals } from "@/lib/collect";
-import { generatePost } from "@/lib/generate";
+import { composeDraftPost } from "@/lib/draftComposer";
 import { sendDraftEmail } from "@/lib/email";
 import { syncDefaultSources } from "@/lib/sourceSync";
 import { isOfficialRecruitSource } from "@/lib/sourceClassify";
 import { getWriteMode } from "@/lib/writeMode";
 import { safeRecordCronRun } from "@/lib/cronRun";
-import { getPostingThemePrompt, isPostMatchingPostingTheme } from "@/lib/postingTheme";
-import { isKstWeekend, kstDate, kstWeekday, nextPostingDate } from "@/lib/kst";
+import { isKstWeekend, kstDate, kstWeekday, scheduledPostingDate } from "@/lib/kst";
 import type { Signal, Source } from "@/lib/types";
 
 function influencerSourcePriority(source: Source): number {
@@ -47,7 +46,7 @@ export async function GET(req: Request) {
   await syncDefaultSources(db);
   const writeMode = await getWriteMode(db);
   const today = kstDate(0);
-  const targetDate = nextPostingDate(1);
+  const targetDate = scheduledPostingDate();
   const since = new Date();
   since.setDate(since.getDate() - 7);
 
@@ -116,33 +115,35 @@ export async function GET(req: Request) {
   }
 
   const styleSample = getEnv("STYLE_SAMPLE", "친근한 승무원 취업 코칭 톤");
-  const { data: latestPostRow } = await db
+  const { data: latestPostRows } = await db
     .from("posts")
-    .select("post,posted_at")
+    .select("post,posted_at,publish_result")
     .order("posted_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(10);
 
-  const latestPostText = String(latestPostRow?.post || "").trim();
-  const latestPostPreview = latestPostText ? latestPostText.split("\n").slice(0, 6).join(" / ") : "";
-  const extraPrompt = [
-    getPostingThemePrompt(targetDate),
-    "다음 게시일 업로드 예정 글은 직전 게시글과 주제와 전개가 겹치면 안 됩니다.",
-    "오늘 글의 훅/전개/예시/핵심 메시지를 반복하지 마세요.",
-    "직전 게시글과 훅, 사례, 전개 순서가 겹치지 않게 쓰세요.",
-    latestPostPreview ? `오늘 게시글 일부: ${latestPostPreview}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  let post = await generatePost(signals, styleSample, extraPrompt);
-  for (let i = 0; i < 2; i += 1) {
-    if (isPostMatchingPostingTheme(targetDate, post)) break;
-    post = await generatePost(
-      signals,
-      styleSample,
-      `${extraPrompt}\n현재 결과가 이번 게시 차례의 주제와 맞지 않았습니다. 반드시 해당 주제 키워드를 반영해 다시 작성하세요.`,
-    );
+  const latestSuccessfulPost = (latestPostRows || []).find((row) => row.publish_result?.ok === true) || null;
+  const latestPostText = String(latestSuccessfulPost?.post || "").trim();
+  const composed = await composeDraftPost({
+    targetDate,
+    signals,
+    styleSample,
+    latestPostText,
+    mode: "fresh",
+    customInstructions: [
+      "다음 게시일 업로드 예정 글은 직전 게시글과 주제와 전개가 겹치면 안 됩니다.",
+      "직전 게시글의 훅, 예시, 결론을 반복하지 않습니다.",
+      "실행 가능한 팁과 사례를 충분히 담아야 합니다.",
+    ],
+  });
+  const post = composed.post;
+  if (composed.provider !== "openai" && composed.reason) {
+    await safeRecordCronRun(db, {
+      cronName: "morning",
+      ok: false,
+      statusCode: 503,
+      summary: "초안 생성 fallback 사용",
+      details: { reason: composed.reason, targetDate },
+    });
   }
 
   const { data: draftRow, error: draftErr } = await db

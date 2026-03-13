@@ -13,7 +13,7 @@
 - 게시와 초안 생성은 평일만 실행한다.
 - 토요일, 일요일은 게시하지 않는다.
 - 주제는 요일 고정이 아니라 평일 게시 순서 기준으로 7개를 순환한다.
-- 다음 게시일 초안은 `nextPostingDate(1)` 기준으로 생성한다.
+- 다음 게시일 초안은 `scheduledPostingDate()` 기준으로 생성한다.
 - 첫 게시와 연속 게시 각각 최소 150자 이상이어야 한다.
 - 링크 삽입, 댓글 유도, 자기홍보 문구, 숫자 표기(`1/5`, `2/5`)는 금지한다.
 - 마지막 문장은 반드시 `❤️`로 끝난다.
@@ -54,6 +54,7 @@
 
 ## 현재 운영형 구조 요약
 - 수집 저장: `sources`, `signals`
+- 운영 설정 저장: `app_settings` (기존 `sources` 특수 row는 레거시 fallback)
 - 초안 저장: `drafts`
 - 게시 결과: `posts`
 - cron 로그: `cron_runs`
@@ -64,15 +65,24 @@
 
 ## 핵심 서버 로직 파일
 - `vercel/app/api/cron/morning/route.ts`: 수집 + 다음 게시일 초안 생성 + 이메일 발송
-- `vercel/app/api/cron/post/route.ts`: 당일 게시 + 중복 게시 가드
+- `vercel/app/api/cron/post/route.ts`: 당일 게시 + 중복 게시 가드 + 게시 잠금
 - `vercel/app/api/cron/token-refresh/route.ts`: Threads 장기 토큰 갱신
 - `vercel/app/api/cron/regenerate-today/route.ts`: 수동 재작성
 - `vercel/app/api/drafts/[draftDate]/route.ts`: 초안 조회/수정/AI 재작성
 - `vercel/lib/collect.ts`: 수집 로직
 - `vercel/lib/generate.ts`: OpenAI 기반 초안 생성/정제
+- `vercel/lib/draftComposer.ts`: 초안 생성/재작성 공통 규칙 엔진
+- `vercel/lib/draftSignals.ts`: `crawl`/`direct` 모드별 입력 signal 로딩
 - `vercel/lib/threads.ts`: 연속 게시 분할 및 publish flow
 - `vercel/lib/postingTheme.ts`: 7개 주제 순환 규칙
 - `vercel/lib/kst.ts`: KST 날짜 유틸
+
+## 운영 안전장치
+- `/api/cron/post`는 `draft_date === 오늘(KST)` 초안만 게시한다.
+- 오늘 초안이 없다고 어제 초안으로 fallback해서 게시하지 않는다.
+- 게시 전에 초안을 `publishing` 상태로 잠근다.
+- 09:30 재시도 cron은 `publishing`이 오래 남은 경우에만 다시 잡을 수 있다.
+- reply chain 중간 실패 시 나머지 문단을 독립 게시로 풀지 않고 실패로 종료한다.
 
 ## 참고 문서
 - `plan.md`: 현재 운영 규칙 변경과 구현 범위 정리

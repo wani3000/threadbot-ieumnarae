@@ -25,6 +25,20 @@ function dateParts(baseDate: Date): { year: string; month: string; day: string }
   };
 }
 
+function timeParts(baseDate: Date): { hour: number; minute: number } {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: KST_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(baseDate);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return {
+    hour: Number(values.hour || "0"),
+    minute: Number(values.minute || "0"),
+  };
+}
+
 export function kstDate(offsetDays = 0, baseDate = new Date()): string {
   const shifted = new Date(baseDate.getTime() + offsetDays * 24 * 60 * 60 * 1000);
   const { year, month, day } = dateParts(shifted);
@@ -61,4 +75,15 @@ export function nextPostingDate(offsetBusinessDays = 1, baseDate = new Date()): 
   }
 
   return kstDate(0, cursor);
+}
+
+export function scheduledPostingDate(baseDate = new Date(), postingHourKst = 9): string {
+  if (isKstWeekend(baseDate)) {
+    return nextPostingDate(0, baseDate);
+  }
+  const { hour } = timeParts(baseDate);
+  if (hour < postingHourKst) {
+    return kstDate(0, baseDate);
+  }
+  return nextPostingDate(1, baseDate);
 }

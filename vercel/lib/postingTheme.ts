@@ -199,11 +199,16 @@ export function getPostingTheme(dateKst: string): PostingTheme {
   return THEMES[index];
 }
 
-export function isPostMatchingPostingTheme(dateKst: string, post: string): boolean {
+export function scorePostAgainstPostingTheme(dateKst: string, post: string): number {
   const theme = getPostingTheme(dateKst);
   const keywords = THEME_KEYWORDS[theme.order - 1] || [];
   const text = post.toLowerCase();
-  return keywords.some((k) => text.includes(k.toLowerCase()));
+  return keywords.reduce((score, keyword) => (text.includes(keyword.toLowerCase()) ? score + 1 : score), 0);
+}
+
+export function isPostMatchingPostingTheme(dateKst: string, post: string): boolean {
+  const score = scorePostAgainstPostingTheme(dateKst, post);
+  return score >= 2;
 }
 
 export function getPostingThemeTable(): Array<{ order: number; category: string; example: string; fullExample: string }> {

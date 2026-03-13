@@ -40,8 +40,13 @@
 ## 3. 데이터 구조
 ### `sources`
 - 수집 URL 저장
-- 일부 설정값도 특수 row로 저장
-- 쓰기 모드(`crawl`, `direct`)와 토큰 메타데이터 일부가 같이 들어간다
+- 레거시 호환을 위해 일부 설정값 특수 row가 남아 있을 수 있다
+
+### `app_settings`
+- 운영 설정 저장
+- 쓰기 모드(`crawl`, `direct`)
+- Threads publish token / expires_at
+- 현재 코드는 `app_settings`를 우선 사용하고, 없으면 `sources` 특수 row를 fallback으로 읽는다
 
 ### `signals`
 - 크롤링 결과 저장
@@ -118,9 +123,12 @@
 - 문단 단위로 게시를 분리한다
 - 첫 게시와 연속 게시 각각 최소 150자 이상이 되도록 병합한다
 - 여러 문단이면 reply chain으로 발행한다
-- 중간 reply 실패 시 standalone fallback을 시도한다
+- 중간 reply 실패 시 독립 게시로 풀지 않고 실패로 종료한다
 
 ### 중복 게시 방지
+- `draft_date === 오늘(KST)` 초안만 게시한다
+- 오늘 초안이 없으면 이전 날짜 초안으로 fallback하지 않는다
+- 게시 직전 초안을 `publishing` 상태로 잠근다
 - `posts` 테이블에서 KST 하루 범위 내 성공 게시 여부 확인
 - 이미 성공 게시가 있으면 skip
 - `force=1`일 때만 재게시 허용
@@ -137,14 +145,16 @@
 5. `direct`이면 최근 `manual-upload`를 사용
 6. dedupe + priority 적용
 7. 다음 게시일 계산
-8. 다음 게시일 주제 순환 규칙을 프롬프트에 반영
-9. 직전 게시글과 주제/훅/사례가 겹치지 않게 추가 프롬프트 적용
-10. 초안 저장 + 이메일 발송 + cron 로그 기록
+8. `scheduledPostingDate()` 기준으로 현재 시점의 게시 대상 날짜를 결정
+9. 다음 게시일 주제 순환 규칙을 프롬프트에 반영
+10. 직전 게시글과 주제/훅/사례가 겹치지 않게 추가 프롬프트 적용
+11. 초안 저장 + 이메일 발송 + cron 로그 기록
+12. 생성/재작성 모두 `draftComposer.ts` 공통 규칙 엔진을 사용한다
 
 ## 8. 재작성 경로
 ### 수동 재작성 cron
 - `vercel/app/api/cron/regenerate-today/route.ts`
-- 현재 또는 가장 최근 초안을 다시 생성
+- 오늘 초안만 다시 생성
 - 같은 주제 순환 규칙을 적용
 
 ### 관리자 초안 재작성
@@ -179,10 +189,10 @@
 
 ## 10. 관찰된 설계 특징
 1. Python MVP와 운영형 Next.js가 병존한다.
-2. `sources` 테이블이 소스 저장과 설정 저장 역할을 같이 한다.
+2. `app_settings` 도입 전 흔적 때문에 `sources` 특수 row fallback이 남아 있다.
 3. `signals`는 크롤링 결과와 직접 업로드를 함께 담는 다목적 저장소다.
 4. 생성 규칙은 프롬프트뿐 아니라 후처리와 게시 직전 단계에서 중복으로 강제된다.
-5. 현재 운영 핵심은 `postingTheme.ts`, `generate.ts`, `threads.ts`, `cron` 라우트 네 군데다.
+5. 현재 운영 핵심은 `postingTheme.ts`, `draftComposer.ts`, `threads.ts`, `cron` 라우트다.
 
 ## 11. 현재 결론
 - 이 시스템의 실운영 기준은 `vercel/`이다.

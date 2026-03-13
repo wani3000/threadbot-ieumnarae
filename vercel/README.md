@@ -31,6 +31,7 @@ Set these in Vercel Project Settings > Environment Variables.
 ## 2) Supabase Setup
 1. Create a Supabase project.
 2. Open SQL Editor and run [`supabase/schema.sql`](./supabase/schema.sql).
+3. Existing projects should ensure `public.app_settings` exists so write mode and Threads token metadata are stored outside `sources`.
 
 ## 3) Deploy on Vercel
 1. Import this repo to Vercel.
@@ -38,10 +39,10 @@ Set these in Vercel Project Settings > Environment Variables.
 3. Deploy.
 
 ## 4) Cron schedules (already in `vercel.json`, UTC)
-- `59 14 * * *` -> KST 23:59 collect/write tomorrow draft + email
-- `5 15 * * *` -> KST 00:05 collect/write tomorrow draft backup run
-- `0 0 * * *` -> KST 09:00 auto post
-- `30 0 * * *` -> KST 09:30 auto post retry run
+- `59 14 * * 1-5` -> KST 23:59 collect/write next business-day draft + email
+- `5 15 * * 1-5` -> KST 00:05 collect/write next business-day draft backup run
+- `0 0 * * 1-5` -> KST 09:00 auto post
+- `30 0 * * 1-5` -> KST 09:30 auto post retry run (same-day lock aware)
 - `10 15 * * *` -> KST 00:10 Threads long-lived token refresh
 
 Collection policy:
@@ -54,6 +55,7 @@ Collection policy:
 ## 5) Endpoints
 - `GET /api/cron/morning` cron only
 - `GET /api/cron/post` cron only
+- `GET /api/cron/regenerate-today` cron/admin utility only
 - `GET/PATCH /api/drafts/:date` draft edit (admin session required)
 - `GET/POST /api/collection/sources` source list/add
 - `POST /api/collection/sources/sync` sync built-in default sources (admin session required)
@@ -71,6 +73,10 @@ Collection policy:
 - Token operations:
   - `GET /api/cron/token-refresh` refreshes a long-lived Threads token (`th_refresh_token`) and stores latest token/expiry in Supabase.
   - Post cron (`/api/cron/post`) also auto-attempts one refresh/retry when token error(code 190) is detected.
+- Posting safety:
+  - `/api/cron/post` publishes only the draft whose `draft_date` equals today in KST.
+  - It sets the draft status to `publishing` before calling Threads API, so the 09:30 retry does not post twice.
+  - Reply-chain failure no longer falls back to detached standalone posts.
 - Cron run logs:
   - Cron endpoints write latest result to `public.cron_runs`.
   - Dashboard top card shows last success/failure reason per cron.

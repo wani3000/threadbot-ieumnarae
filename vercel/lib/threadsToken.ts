@@ -1,14 +1,17 @@
 import { getEnv } from "./env";
+import { getAppSettingText, setAppSettingText } from "./appSettings";
 
 const GRAPH_BASE = (process.env.THREADS_GRAPH_BASE || "https://graph.threads.net").replace(/\/$/, "");
 const TOKEN_URL = "manual://config/threads_publish_token";
 const EXPIRES_URL = "manual://config/threads_publish_token_expires_at";
+const TOKEN_KEY = "threads_publish_token";
+const EXPIRES_KEY = "threads_publish_token_expires_at";
 
 export async function getThreadsPublishToken(db: any): Promise<string> {
   try {
-    const { data } = await db.from("sources").select("name").eq("url", TOKEN_URL).maybeSingle();
-    const stored = (data?.name || "").trim();
-    if (stored) return stored;
+    const stored = await getAppSettingText(db, TOKEN_KEY, { legacyUrl: TOKEN_URL });
+    const value = (stored || "").trim();
+    if (value) return value;
   } catch (error) {
     console.error("[getThreadsPublishToken]", error);
   }
@@ -17,26 +20,20 @@ export async function getThreadsPublishToken(db: any): Promise<string> {
 
 export async function getThreadsTokenExpiresAt(db: any): Promise<string | null> {
   try {
-    const { data } = await db.from("sources").select("name").eq("url", EXPIRES_URL).maybeSingle();
-    const stored = (data?.name || "").trim();
-    return stored || null;
+    const stored = await getAppSettingText(db, EXPIRES_KEY, { legacyUrl: EXPIRES_URL });
+    const value = (stored || "").trim();
+    if (value) return value;
   } catch (error) {
     console.error("[getThreadsTokenExpiresAt]", error);
     return null;
   }
+  return null;
 }
 
 export async function setThreadsPublishToken(db: any, token: string, expiresInSec?: number) {
-  const rows = [
-    { name: token, url: TOKEN_URL, enabled: false },
-    {
-      name: new Date(Date.now() + Math.max(0, Number(expiresInSec || 0)) * 1000).toISOString(),
-      url: EXPIRES_URL,
-      enabled: false,
-    },
-  ];
-  const { error } = await db.from("sources").upsert(rows, { onConflict: "url" });
-  if (error) throw error;
+  const expiresAt = new Date(Date.now() + Math.max(0, Number(expiresInSec || 0)) * 1000).toISOString();
+  await setAppSettingText(db, TOKEN_KEY, token, { legacyUrl: TOKEN_URL, legacyEnabled: false });
+  await setAppSettingText(db, EXPIRES_KEY, expiresAt, { legacyUrl: EXPIRES_URL, legacyEnabled: false });
 }
 
 export async function refreshThreadsLongLivedToken(currentToken: string): Promise<{

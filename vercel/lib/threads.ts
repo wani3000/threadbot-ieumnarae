@@ -91,7 +91,6 @@ export async function publishThreads(
   if (slides.length > 1) {
     let replyToId: string | undefined;
     const publishedIds: string[] = [];
-    const detachedIndices: number[] = [];
     for (let i = 0; i < slides.length; i += 1) {
       const text = slides[i];
       let create = await createTextContainer(token, text, replyToId);
@@ -102,17 +101,16 @@ export async function publishThreads(
         create = await createTextContainer(token, text, replyToId);
         creationId = (create.json as { id?: string })?.id;
       }
-      if ((!create.ok || !creationId) && replyToId) {
-        // Fallback: publish this slide as a standalone post instead of aborting all slides.
-        create = await createTextContainer(token, text);
-        creationId = (create.json as { id?: string })?.id;
-        if (create.ok && creationId) detachedIndices.push(i);
-      }
       if (!create.ok || !creationId) {
         return {
           ok: false,
           status: create.status,
-          body: { step: "create_series", index: i, response: create.json },
+          body: {
+            step: "create_series",
+            index: i,
+            response: create.json,
+            chained_reply_to_id: replyToId || null,
+          },
         };
       }
 
@@ -123,21 +121,16 @@ export async function publishThreads(
         publish = await publishContainer(token, creationId);
         publishedId = (publish.json as { id?: string })?.id;
       }
-      if ((!publish.ok || !publishedId) && isMediaNotFound(publish.json)) {
-        // Fallback: recreate as standalone and publish, so a single failing reply chain does not abort all slides.
-        const standaloneCreate = await createTextContainer(token, text);
-        const standaloneCreationId = (standaloneCreate.json as { id?: string })?.id;
-        if (standaloneCreate.ok && standaloneCreationId) {
-          publish = await publishContainer(token, standaloneCreationId);
-          publishedId = (publish.json as { id?: string })?.id;
-          if (publish.ok && publishedId) detachedIndices.push(i);
-        }
-      }
       if (!publish.ok || !publishedId) {
         return {
           ok: false,
           status: publish.status,
-          body: { step: "publish_series", index: i, response: publish.json },
+          body: {
+            step: "publish_series",
+            index: i,
+            response: publish.json,
+            chained_reply_to_id: replyToId || null,
+          },
         };
       }
       publishedIds.push(publishedId);
@@ -147,7 +140,7 @@ export async function publishThreads(
     return {
       ok: true,
       status: 200,
-      body: { step: "publish_series", count: slides.length, ids: publishedIds, detached_indices: detachedIndices },
+      body: { step: "publish_series", count: slides.length, ids: publishedIds },
     };
   }
 

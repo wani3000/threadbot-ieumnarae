@@ -14,6 +14,16 @@ function kstDayBoundsUtc(dateKst: string): { startUtc: string; endUtc: string } 
   return { startUtc: start.toISOString(), endUtc: end.toISOString() };
 }
 
+const PUBLISHABLE_STATUSES = ["pending", "regenerated", "approved", "edited", "failed"] as const;
+const STALE_PUBLISHING_MINUTES = Number(process.env.STALE_PUBLISHING_MINUTES || "90");
+
+function isStalePublishing(updatedAt?: string | null): boolean {
+  if (!updatedAt) return false;
+  const updated = new Date(updatedAt).getTime();
+  if (!Number.isFinite(updated)) return false;
+  return Date.now() - updated >= STALE_PUBLISHING_MINUTES * 60 * 1000;
+}
+
 export async function GET(req: Request) {
   if (!isAuthorizedCron(req)) {
     return cronUnauthorizedResponse();
@@ -39,28 +49,30 @@ export async function GET(req: Request) {
   const today = kstDate();
   const { startUtc, endUtc } = kstDayBoundsUtc(today);
 
-  let { data: draft, error } = await db.from("drafts").select("id,post,draft_date,status").eq("draft_date", today).single();
-  if (error || !draft) {
-    // Self-heal: if today's draft is missing, try the latest pending/regenerated draft not newer than today.
-    const fallback = await db
-      .from("drafts")
-      .select("id,post,draft_date,status")
-      .lte("draft_date", today)
-      .in("status", ["pending", "regenerated"])
-      .order("draft_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    draft = fallback.data || null;
+  const { data: draft, error } = await db
+    .from("drafts")
+    .select("id,post,draft_date,status,updated_at")
+    .eq("draft_date", today)
+    .maybeSingle();
+  if (error) {
+    await safeRecordCronRun(db, {
+      cronName: "post",
+      ok: false,
+      statusCode: 500,
+      summary: "오늘 초안 조회 실패",
+      details: { draft_date: today, error: String(error) },
+    });
+    return serverErrorResponse("api/cron/post draft-read", error);
   }
   if (!draft) {
     await safeRecordCronRun(db, {
       cronName: "post",
       ok: false,
       statusCode: 404,
-      summary: "게시 가능한 초안 없음",
+      summary: "오늘 날짜 초안 없음",
       details: { draft_date: today },
     });
-    return notFoundResponse("게시 가능한 초안이 없습니다.");
+    return notFoundResponse("오늘 게시할 초안이 없습니다.");
   }
 
   // Hard guard: never publish more than once per KST day.
@@ -100,32 +112,93 @@ export async function GET(req: Request) {
     });
   }
 
+  const stalePublishing = draft.status === "publishing" && isStalePublishing(draft.updated_at);
+  if (!force && draft.status === "publishing" && !stalePublishing) {
+    await safeRecordCronRun(db, {
+      cronName: "post",
+      ok: true,
+      statusCode: 200,
+      summary: "이미 게시 진행 중(스킵)",
+      details: { draft_date: today },
+    });
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "already_publishing",
+      draft_date: today,
+    });
+  }
+
+  const lockStatuses = force
+    ? [...PUBLISHABLE_STATUSES, "posted", "publishing"]
+    : stalePublishing
+      ? [...PUBLISHABLE_STATUSES, "publishing"]
+      : [...PUBLISHABLE_STATUSES];
+  const { data: lockedDraft, error: lockErr } = await db
+    .from("drafts")
+    .update({
+      status: "publishing",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", draft.id)
+    .in("status", lockStatuses)
+    .select("id,post,draft_date,status")
+    .maybeSingle();
+  if (lockErr) {
+    await safeRecordCronRun(db, {
+      cronName: "post",
+      ok: false,
+      statusCode: 500,
+      summary: "게시 잠금 실패",
+      details: { draft_date: today, error: String(lockErr) },
+    });
+    return serverErrorResponse("api/cron/post lock", lockErr);
+  }
+  if (!lockedDraft) {
+    await safeRecordCronRun(db, {
+      cronName: "post",
+      ok: true,
+      statusCode: 200,
+      summary: "다른 실행이 이미 처리 중(스킵)",
+      details: { draft_date: today, status: draft.status },
+    });
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "already_processed_elsewhere",
+      draft_date: today,
+    });
+  }
+
   const token = await getThreadsPublishToken(db);
-  let publish = await publishThreads(draft.post, token);
+  let publish = await publishThreads(lockedDraft.post, token);
 
   if (!publish.ok && isThreadsTokenError(publish)) {
     const refreshed = await refreshThreadsLongLivedToken(token);
     if (refreshed.ok && refreshed.accessToken) {
       await setThreadsPublishToken(db, refreshed.accessToken, refreshed.expiresIn);
-      publish = await publishThreads(draft.post, refreshed.accessToken);
+      publish = await publishThreads(lockedDraft.post, refreshed.accessToken);
     }
   }
 
   await db.from("posts").insert({
-    draft_id: draft.id,
-    post: draft.post,
+    draft_id: lockedDraft.id,
+    post: lockedDraft.post,
     publish_result: publish,
   });
 
-  await db.from("drafts").update({ status: publish.ok ? "posted" : "failed", updated_at: new Date().toISOString() }).eq("id", draft.id);
+  await db
+    .from("drafts")
+    .update({ status: publish.ok ? "posted" : "failed", updated_at: new Date().toISOString() })
+    .eq("id", lockedDraft.id);
   await safeRecordCronRun(db, {
     cronName: "post",
     ok: publish.ok,
     statusCode: publish.status,
     summary: publish.ok ? "게시 성공" : "게시 실패",
     details: {
-      draft_id: draft.id,
-      draft_date: draft.draft_date,
+      draft_id: lockedDraft.id,
+      draft_date: lockedDraft.draft_date,
       force,
       result: publish.body,
     },
