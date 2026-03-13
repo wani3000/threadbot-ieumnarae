@@ -70,8 +70,6 @@ def render_home(settings) -> None:
         for idx, reco in enumerate(recos, start=1):
             with st.expander(f"추천 {idx}: {reco['title']}", expanded=(idx == 1)):
                 st.write(reco["post"])
-                if reco.get("source"):
-                    st.markdown(f"원문: {reco['source']}")
 
     st.subheader("3) Threads 태그 기반 최신 글 리스팅")
     st.caption("로그인 없는 공개 검색 기준이며, 일부 태그는 노출 제한으로 누락될 수 있습니다.")
@@ -231,11 +229,12 @@ def build_recommended_posts(signals: List[Dict], max_items: int = 5) -> List[Dic
         summary = signal.get("summary", "")
         airline = signal.get("airline") or "항공사"
         post = (
-            f"[이번 주 {airline} 취업 포인트]\n"
+            f"{airline} 준비를 할 때 먼저 체크하면 좋은 포인트예요.\n"
             f"{title}\n\n"
-            f"핵심: {summary[:200]}\n"
-            f"지원 전 체크: 일정/자격요건/근무지 꼭 원문으로 재확인하세요.\n"
-            f"원문: {link}"
+            f"핵심은 이 부분이에요.\n{summary[:200]}\n"
+            "지원 전에는 일정, 자격요건, 근무지를 차분하게 다시 확인해보세요.\n"
+            "준비 방향을 먼저 잡아두면 훨씬 덜 흔들려요.\n"
+            "❤️"
         )
         picked.append({"title": title, "post": post, "source": link})
         if len(picked) >= max_items:
