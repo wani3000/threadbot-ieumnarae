@@ -19,29 +19,55 @@ function kstStartIso(dateKst: string): string {
 
 async function getHomeData() {
   const db = supabaseAdmin();
+  const today = kstDate(0);
   const tomorrow = scheduledPostingDate();
   const now = new Date();
   const weekAgo = new Date(now);
   weekAgo.setDate(now.getDate() - 7);
   const weekAgoIso = weekAgo.toISOString();
 
-  const [{ data: posts }, { data: drafts }, { data: signals }, { data: sources }, { data: tomorrowDraft }, { data: cronRuns }] = await Promise.all([
-    db.from("posts").select("posted_at,post,publish_result").gte("posted_at", weekAgoIso).order("posted_at", { ascending: false }).limit(20),
+  const [
+    { data: posts },
+    { data: drafts },
+    { data: signals },
+    { data: sources },
+    { data: tomorrowDraft },
+    { data: cronRuns },
+    { data: todayDraft },
+    { data: todayPosts },
+  ] = await Promise.all([
+    db.from("posts").select("draft_id,posted_at,post,publish_result").gte("posted_at", weekAgoIso).order("posted_at", { ascending: false }).limit(20),
     db.from("drafts").select("draft_date,post,status,approved,updated_at").order("draft_date", { ascending: false }).limit(5),
     db.from("signals").select("source_name,title,link,summary,published_at,airline,role,confidence").gte("created_at", weekAgoIso).order("published_at", { ascending: false }).limit(200),
     db.from("sources").select("name,url,enabled").order("created_at", { ascending: true }),
     db.from("drafts").select("draft_date,post,status,approved,updated_at,source_json").eq("draft_date", tomorrow).maybeSingle(),
     db.from("cron_runs").select("cron_name,run_at,ok,status_code,summary,details").order("run_at", { ascending: false }).limit(30),
+    db.from("drafts").select("id,draft_date,status,updated_at").eq("draft_date", today).maybeSingle(),
+    db.from("posts").select("draft_id,posted_at,publish_result").gte("posted_at", kstStartIso(today)).order("posted_at", { ascending: false }).limit(5),
   ]);
 
+  let appSettingsReady = false;
+  try {
+    const { error } = await db.from("app_settings").select("key").limit(1);
+    appSettingsReady = !error;
+  } catch {
+    appSettingsReady = false;
+  }
+
+  const successfulTodayPost = (todayPosts || []).find((row: { publish_result?: { ok?: boolean } | null }) => row.publish_result?.ok === true) || null;
+
   return {
+    today,
     tomorrow,
     posts: (posts || []).filter((row: { publish_result?: { ok?: boolean } | null }) => row.publish_result?.ok === true),
     drafts: drafts || [],
     signals: (signals || []) as Signal[],
     sources: sources || [],
     tomorrowDraft: tomorrowDraft || null,
+    todayDraft: todayDraft || null,
+    successfulTodayPost,
     cronRuns: cronRuns || [],
+    appSettingsReady,
     tokenExpiresAt: await getThreadsTokenExpiresAt(db),
     tokenHealth: await checkThreadsTokenHealth(db),
   };
@@ -154,6 +180,17 @@ function keywordStats(signals: Signal[]) {
     .sort((a, b) => b.count - a.count);
 }
 
+function summarizePublishResult(result: unknown): string {
+  if (!result || typeof result !== "object") return "-";
+  const body = (result as { body?: { step?: string; count?: number; ids?: string[] } }).body;
+  if (!body) return "-";
+  const ids = Array.isArray(body.ids) ? body.ids.length : 0;
+  const count = typeof body.count === "number" ? body.count : ids;
+  if (count > 0) return `${count}개 세그먼트 게시`;
+  if (body.step) return body.step;
+  return "-";
+}
+
 export default async function HomePage() {
   const data = await getHomeData();
   const todayKstIso = kstStartIso(kstDate(0));
@@ -218,6 +255,33 @@ export default async function HomePage() {
             ))}
           </div>
         )}
+      </section>
+
+      <section>
+        <h2>오늘 게시 추적</h2>
+        <p>오늘 KST 기준 날짜: {data.today}</p>
+        <p>
+          오늘 초안 상태:{" "}
+          <strong>{(data.todayDraft as { status?: string } | null)?.status || "없음"}</strong>
+          {data.todayDraft ? ` / 수정시각: ${new Date((data.todayDraft as { updated_at?: string }).updated_at || "").toLocaleString("ko-KR")}` : ""}
+        </p>
+        <p>
+          오늘 게시 성공 여부:{" "}
+          <strong style={{ color: data.successfulTodayPost ? "#0a7f2e" : "#b42318" }}>
+            {data.successfulTodayPost ? "성공 기록 있음" : "성공 기록 없음"}
+          </strong>
+        </p>
+        {data.successfulTodayPost ? (
+          <>
+            <p>게시시각: {new Date((data.successfulTodayPost as { posted_at: string }).posted_at).toLocaleString("ko-KR")}</p>
+            <p>게시 결과: {summarizePublishResult((data.successfulTodayPost as { publish_result?: unknown }).publish_result)}</p>
+            <p>게시된 draft_id: {(data.successfulTodayPost as { draft_id?: string | null }).draft_id || "-"}</p>
+          </>
+        ) : null}
+        <p>
+          설정 저장소 상태:{" "}
+          <strong>{data.appSettingsReady ? "app_settings 사용 가능" : "레거시 fallback(sources 특수 row) 사용 중 가능성"}</strong>
+        </p>
       </section>
 
       <section>
