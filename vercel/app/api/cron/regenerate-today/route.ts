@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { isAuthorizedCron } from "@/lib/env";
-import { cronUnauthorizedResponse, notFoundResponse, serverErrorResponse } from "@/lib/apiError";
+import { isAuthorizedSecretCron } from "@/lib/env";
+import { cronSecretUnauthorizedResponse, notFoundResponse, serverErrorResponse } from "@/lib/apiError";
 import { supabaseAdmin } from "@/lib/supabase";
 import { composeDraftPost } from "@/lib/draftComposer";
 import { loadSignalsForDraft } from "@/lib/draftSignals";
@@ -9,7 +9,7 @@ import { safeRecordCronRun } from "@/lib/cronRun";
 import { kstDate } from "@/lib/kst";
 
 export async function GET(req: Request) {
-  if (!isAuthorizedCron(req)) return cronUnauthorizedResponse();
+  if (!isAuthorizedSecretCron(req)) return cronSecretUnauthorizedResponse();
 
   const db = supabaseAdmin();
   try {

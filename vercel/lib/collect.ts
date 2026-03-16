@@ -19,6 +19,7 @@ const RELEVANCE_CORE = [
   "hiring",
 ];
 const RELEVANCE_STRONG = ["대한항공", "아시아나", "제주항공", "진에어", "티웨이", "에어부산", "에어서울", "이스타", "에미레이트", "카타르", "에티하드"];
+const RECRUITER_DEFAULT_PATHS = ["/career/apply", "/career/recruitment", "/career/recruit"];
 
 function looksLikeRecruitPath(url: string): boolean {
   const low = url.toLowerCase();
@@ -67,6 +68,55 @@ function toAbsoluteUrl(base: string, href: string): string | null {
   }
 }
 
+function dedupeUrls(urls: string[]): string[] {
+  return [...new Set(urls.filter(Boolean))];
+}
+
+function extractTagText(html: string, pattern: RegExp): string | null {
+  const match = html.match(pattern);
+  if (!match) return null;
+  return stripHtml(match[1] || "").trim() || null;
+}
+
+function extractMetaContent(html: string, attr: "name" | "property", value: string): string | null {
+  const regex = new RegExp(`<meta[^>]*${attr}=["']${value}["'][^>]*content=["']([^"']+)["'][^>]*>`, "i");
+  const reverseRegex = new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*${attr}=["']${value}["'][^>]*>`, "i");
+  const match = html.match(regex) || html.match(reverseRegex);
+  return match?.[1]?.trim() || null;
+}
+
+function extractCanonicalUrl(base: string, html: string): string | null {
+  const match = html.match(/<link[^>]*rel=["']canonical["'][^>]*href=["']([^"']+)["'][^>]*>/i);
+  if (!match?.[1]) return null;
+  return toAbsoluteUrl(base, match[1]);
+}
+
+function officialCandidateUrls(source: Source): string[] {
+  const lowerUrl = source.url.toLowerCase();
+  const candidates = [source.url];
+
+  if (lowerUrl.includes("recruit.koreanair.com")) {
+    candidates.push("https://koreanair.recruiter.co.kr/career/apply");
+  }
+  if (lowerUrl.includes("flyasiana.com")) {
+    candidates.push("https://flyasiana.recruiter.co.kr/career/recruitment");
+  }
+
+  try {
+    const url = new URL(source.url);
+    const barePath = url.pathname === "/" || url.pathname === "";
+    if (url.host.includes("recruiter.co.kr") && barePath) {
+      for (const path of RECRUITER_DEFAULT_PATHS) {
+        candidates.push(`${url.protocol}//${url.host}${path}`);
+      }
+    }
+  } catch {
+    // Ignore malformed source URLs and keep original candidate list.
+  }
+
+  return dedupeUrls(candidates);
+}
+
 function buildOfficialSignal(source: Source, loc: string, published: Date | null, anchorText?: string): Signal {
   const pageName = anchorText?.trim() || loc.split("/").pop() || "apply";
   const summaryBase = anchorText?.trim() || "공식 채용 페이지가 갱신되었습니다. 모집요강/일정은 원문에서 확인하세요.";
@@ -84,41 +134,58 @@ function buildOfficialSignal(source: Source, loc: string, published: Date | null
 }
 
 async function collectOfficialRecruitFromHtml(source: Source, sinceIso: string): Promise<Signal[]> {
-  try {
-    const res = await fetchWithTimeout(
-      source.url,
-      { cache: "no-store", headers: { "User-Agent": "Mozilla/5.0 Threadbot/1.0" } },
-      Number(process.env.SOURCE_FETCH_TIMEOUT_MS || "8000"),
-    );
-    if (!res.ok) return [];
-    const html = await res.text();
-    const sourceHost = new URL(source.url).host.replace(/^www\./, "");
-    const since = new Date(sinceIso);
-    const found = new Map<string, Signal>();
+  const since = new Date(sinceIso);
+  const found = new Map<string, Signal>();
 
-    const pageText = stripHtml(html).slice(0, 5000);
-    if (isOfficialRecruitUrl(source.url) && /채용|모집|승무원|객실|cabin|flight attendant/i.test(pageText)) {
-      found.set(source.url, buildOfficialSignal(source, source.url, since, "공식 채용 메인 페이지"));
+  for (const targetUrl of officialCandidateUrls(source)) {
+    try {
+      const res = await fetchWithTimeout(
+        targetUrl,
+        { cache: "no-store", headers: { "User-Agent": "Mozilla/5.0 Threadbot/1.0" } },
+        Number(process.env.SOURCE_FETCH_TIMEOUT_MS || "8000"),
+      );
+      if (!res.ok) continue;
+      const html = await res.text();
+      const sourceHost = new URL(targetUrl).host.replace(/^www\./, "");
+      const pageText = stripHtml(html).slice(0, 5000);
+      const title = extractTagText(html, /<title[^>]*>([\s\S]*?)<\/title>/i);
+      const ogTitle = extractMetaContent(html, "property", "og:title");
+      const metaDescription =
+        extractMetaContent(html, "name", "description") || extractMetaContent(html, "property", "og:description");
+      const canonical = extractCanonicalUrl(targetUrl, html);
+      const primaryUrl = canonical || targetUrl;
+      const summarySeed = metaDescription || title || ogTitle || "공식 채용 페이지가 갱신되었습니다. 모집요강/일정은 원문에서 확인하세요.";
+
+      if (
+        isOfficialRecruitUrl(targetUrl) &&
+        /채용|모집|승무원|객실|cabin|flight attendant|recruit|hiring/i.test(`${pageText} ${title || ""} ${ogTitle || ""}`)
+      ) {
+        found.set(primaryUrl, buildOfficialSignal(source, primaryUrl, since, title || ogTitle || "공식 채용 메인 페이지"));
+      }
+
+      const anchorRegex = /<a\b[^>]*href=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi;
+      let match: RegExpExecArray | null;
+      while ((match = anchorRegex.exec(html))) {
+        const href = match[2] || "";
+        const text = stripHtml(match[3] || "");
+        const absolute = toAbsoluteUrl(targetUrl, href);
+        if (!absolute) continue;
+        const absoluteHost = new URL(absolute).host.replace(/^www\./, "");
+        if (absoluteHost !== sourceHost) continue;
+        if (!isOfficialRecruitUrl(absolute) && !looksLikeRecruitPath(absolute)) continue;
+        if (!/채용|모집|승무원|객실|cabin|flight attendant|recruit|hiring/i.test(`${text} ${absolute}`)) continue;
+        found.set(absolute, buildOfficialSignal(source, absolute, since, text || summarySeed || undefined));
+      }
+
+      if (!found.has(primaryUrl) && /채용|모집|승무원|객실|cabin|flight attendant|recruit|hiring/i.test(summarySeed)) {
+        found.set(primaryUrl, buildOfficialSignal(source, primaryUrl, since, title || ogTitle || "공식 채용 페이지"));
+      }
+    } catch {
+      // Ignore per-target fetch failures and continue with fallback candidates.
     }
-
-    const anchorRegex = /<a\b[^>]*href=(["'])(.*?)\1[^>]*>([\s\S]*?)<\/a>/gi;
-    let match: RegExpExecArray | null;
-    while ((match = anchorRegex.exec(html))) {
-      const href = match[2] || "";
-      const text = stripHtml(match[3] || "");
-      const absolute = toAbsoluteUrl(source.url, href);
-      if (!absolute) continue;
-      const absoluteHost = new URL(absolute).host.replace(/^www\./, "");
-      if (absoluteHost !== sourceHost) continue;
-      if (!isOfficialRecruitUrl(absolute) && !looksLikeRecruitPath(absolute)) continue;
-      if (!/채용|모집|승무원|객실|cabin|flight attendant|recruit|hiring/i.test(`${text} ${absolute}`)) continue;
-      found.set(absolute, buildOfficialSignal(source, absolute, since, text || undefined));
-    }
-
-    return [...found.values()];
-  } catch {
-    return [];
   }
+
+  return [...found.values()];
 }
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {

@@ -258,3 +258,10 @@
 - `vercel/app/api/cron/post/route.ts`
 - `vercel/app/api/drafts/[draftDate]/route.ts`
 - `vercel/app/page.tsx`
+
+## 16. Jira 추적 최신 상태
+- PT-60: `[INFRA] threadbot 운영 안정화 후속 보강` (Done)
+- PT-61: `[INFRA] cron 인증을 CRON_SECRET 중심 경로로 추가 강화` (Done)
+- PT-62: `[BE] 공식 항공사 채용 사이트별 파서 추가` (Done)
+- 이번 재투입 작업에서 PT-61 -> PT-62 순서로 마무리했다.
+- 후속으로 남는 운영 과제는 다음 평일 cron 관찰과 anti-bot 강한 공식 사이트의 수집 정밀화다.

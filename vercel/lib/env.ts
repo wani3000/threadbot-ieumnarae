@@ -44,16 +44,24 @@ function hasTrustedVercelCronHeaders(req: Request): boolean {
   return Boolean(vercelId) && hostMatches && looksLikeVercel;
 }
 
-export function isAuthorizedCron(req: Request): boolean {
+function hasBearerCronSecret(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  const trustedManagedCall = hasTrustedVercelCronHeaders(req);
-  if (!secret) {
-    return trustedManagedCall;
-  }
+  if (!secret) return false;
   const auth = req.headers.get("authorization") || "";
-  if (auth === `Bearer ${secret}`) return true;
-  // Allow Vercel-managed cron invocations only when the expected Vercel headers match.
-  return trustedManagedCall;
+  return auth === `Bearer ${secret}`;
+}
+
+export function isAuthorizedScheduledCron(req: Request): boolean {
+  if (hasBearerCronSecret(req)) return true;
+  return hasTrustedVercelCronHeaders(req);
+}
+
+export function isAuthorizedSecretCron(req: Request): boolean {
+  return hasBearerCronSecret(req);
+}
+
+export function isAuthorizedCron(req: Request): boolean {
+  return isAuthorizedScheduledCron(req);
 }
 
 export function baseUrl(): string {

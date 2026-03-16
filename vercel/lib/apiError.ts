@@ -8,6 +8,10 @@ export function cronUnauthorizedResponse() {
   return unauthorizedResponse("권한이 없습니다. Cron 호출 또는 Authorization Bearer CRON_SECRET이 필요합니다.");
 }
 
+export function cronSecretUnauthorizedResponse() {
+  return unauthorizedResponse("권한이 없습니다. Authorization Bearer CRON_SECRET이 필요합니다.");
+}
+
 export function badRequestResponse(message = "요청값을 확인해주세요.") {
   return NextResponse.json({ error: message }, { status: 400 });
 }
