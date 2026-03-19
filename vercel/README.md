@@ -19,6 +19,8 @@ Set these in Vercel Project Settings > Environment Variables.
 - `SOURCE_FETCH_TIMEOUT_MS` (optional, default `8000`)
 - `OFFICIAL_SOURCE_WEEKDAY` (optional, default `1` = Monday KST, official airline sources collected weekly only)
 - `RESEND_API_KEY`
+- `TELEGRAM_BOT_TOKEN` (Telegram bot token for preview alerts)
+- `TELEGRAM_CHAT_ID` (Telegram chat id, e.g. `387557093`)
 - `EMAIL_FROM` (Resend verified sender, e.g. `ieumnarae-threadbot <noreply@yourdomain.com>`)
 - `EMAIL_TO` (`oxaz1234@gmail.com`)
 - `ADMIN_EMAILS` (optional, admin 허용 이메일 CSV. 미입력 시 `EMAIL_TO` 사용)
@@ -43,6 +45,7 @@ Set these in Vercel Project Settings > Environment Variables.
 - `5 15 * * 1-5` -> KST 00:05 collect/write next business-day draft backup run
 - `0 0 * * 1-5` -> KST 09:00 auto post
 - `30 0 * * 1-5` -> KST 09:30 auto post retry run (same-day lock aware)
+- `0 22 * * 1-5` -> KST 07:00 Telegram preview for the same-day 09:00 draft
 - `10 15 * * *` -> KST 00:10 Threads long-lived token refresh
 
 Collection policy:
@@ -72,6 +75,7 @@ Collection policy:
   - Requires proper Threads permissions (e.g. keyword search scope approved in Meta App Review).
 - Token operations:
   - `GET /api/cron/token-refresh` refreshes a long-lived Threads token (`th_refresh_token`) and stores latest token/expiry in Supabase.
+- `GET /api/cron/telegram-preview` sends the 09:00 scheduled draft preview to Telegram at 07:00 KST.
   - Post cron (`/api/cron/post`) also auto-attempts one refresh/retry when token error(code 190) is detected.
 - Posting safety:
   - `/api/cron/post` publishes only the draft whose `draft_date` equals today in KST.

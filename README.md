@@ -86,10 +86,12 @@
 - 쓰기 모드: `crawl` / `direct`
 - 인증: Supabase + Google 로그인
 - 이메일: Resend
+- 텔레그램 미리보기 알림: Telegram Bot API (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`)
 - 게시: Threads Graph API publish flow
 
 ## 핵심 서버 로직 파일
 - `vercel/app/api/cron/morning/route.ts`: 수집 + 다음 게시일 초안 생성 + 이메일 발송
+- `vercel/app/api/cron/telegram-preview/route.ts`: 07:00 KST 텔레그램 미리보기 전송
 - `vercel/app/api/cron/post/route.ts`: 당일 게시 + 중복 게시 가드 + 게시 잠금
 - `vercel/app/api/cron/token-refresh/route.ts`: Threads 장기 토큰 갱신
 - `vercel/app/api/cron/regenerate-today/route.ts`: 수동 재작성

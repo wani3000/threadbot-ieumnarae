@@ -135,6 +135,11 @@
 - UI 승인 대기 중인 이슈 목록
   - 없음
 
+## 텔레그램 미리보기 알림
+- [x] 07:00 KST 텔레그램 미리보기 cron 추가
+- [x] `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` 기반 Bot API 전송 모듈 추가
+- [x] 전송 성공/실패를 `cron_runs`에 `telegram-preview`로 기록
+
 ## 남은 운영 체크
 - 실제 운영 env에서 `POSTING_THEME_ROTATION_START_DATE`를 변경할 필요가 있는지 확인
 - 배포 후 대시보드에서 다음 게시일 주제가 기대 순서대로 나오는지 확인

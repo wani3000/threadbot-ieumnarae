@@ -4,6 +4,7 @@
     { "path": "/api/cron/morning", "schedule": "5 15 * * 1-5" },
     { "path": "/api/cron/post", "schedule": "0 0 * * 1-5" },
     { "path": "/api/cron/post", "schedule": "30 0 * * 1-5" },
+    { "path": "/api/cron/telegram-preview", "schedule": "0 22 * * 1-5" },
     { "path": "/api/cron/token-refresh", "schedule": "10 15 * * *" }
   ]
 }

@@ -265,3 +265,12 @@
 - PT-62: `[BE] 공식 항공사 채용 사이트별 파서 추가` (Done)
 - 이번 재투입 작업에서 PT-61 -> PT-62 순서로 마무리했다.
 - 후속으로 남는 운영 과제는 다음 평일 cron 관찰과 anti-bot 강한 공식 사이트의 수집 정밀화다.
+
+
+## 17. 텔레그램 미리보기 알림
+- 운영 경로 기준 구현 위치: `vercel/app/api/cron/telegram-preview/route.ts`, `vercel/lib/telegram.ts`
+- 용도: 평일 07:00 KST에 당일 09:00 자동게시 예정 초안을 텔레그램으로 미리 전송
+- 환경변수: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+- 스케줄: `vercel/vercel.json`의 `0 22 * * 1-5` (UTC)
+- 전송 대상 초안: `scheduledPostingDate()` 기준 당일 게시 예정 draft
+- 전송 실패/성공은 `cron_runs.cron_name = telegram-preview`로 기록

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type CronRunInput = {
-  cronName: "morning" | "post" | "token-refresh" | "regenerate-today";
+  cronName: "morning" | "post" | "token-refresh" | "regenerate-today" | "telegram-preview";
   ok: boolean;
   statusCode?: number;
   summary: string;
