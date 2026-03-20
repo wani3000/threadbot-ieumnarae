@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "ieum-narae-threadbot Dashboard",
+  title: "threadbot-ieumnarae Dashboard",
   description: "Vercel + Resend + Supabase",
 };
 

@@ -33,7 +33,7 @@ If your team already linked the project before, `npx vercel link` will connect t
 
 ### Example usage
 ```bash
-cd /Users/chulwan/Documents/GitHub/threadbot/vercel
+cd /Users/chulwan/Documents/GitHub/threadbot-ieumnarae/vercel
 
 SUPABASE_URL="https://your-project.supabase.co" \
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \
@@ -44,7 +44,7 @@ LIMIT="20" \
 
 ### Example: only today's post runs
 ```bash
-cd /Users/chulwan/Documents/GitHub/threadbot/vercel
+cd /Users/chulwan/Documents/GitHub/threadbot-ieumnarae/vercel
 
 SUPABASE_URL="https://your-project.supabase.co" \
 SUPABASE_SERVICE_ROLE_KEY="your-service-role-key" \

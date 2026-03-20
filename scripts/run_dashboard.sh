@@ -2,4 +2,5 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source .venv/bin/activate
-streamlit run /Users/chulwan/Documents/GitHub/threadbot/src/threadbot/dashboard.py
+STREAMLIT_BROWSER_GATHER_USAGE_STATS=false \
+  .venv/bin/python -m streamlit run src/threadbot/dashboard.py "$@"

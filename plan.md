@@ -1,4 +1,4 @@
-# ieum-narae-threadbot Plan
+# threadbot-ieumnarae Plan
 
 ## 목표
 현재 운영형(`vercel/`) 기준으로, 게시 규칙과 생성 규칙을 코드/문서/UI 모두 같은 기준으로 유지한다.

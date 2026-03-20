@@ -243,7 +243,7 @@ export default async function HomePage() {
 
   return (
     <main style={{ maxWidth: 980, margin: "0 auto", padding: "24px", fontFamily: "system-ui, sans-serif" }}>
-      <h1>ieum-narae-threadbot Dashboard (Vercel)</h1>
+      <h1>threadbot-ieumnarae Dashboard (Vercel)</h1>
 
       <section>
         <h2>마지막 Cron 실행 결과</h2>

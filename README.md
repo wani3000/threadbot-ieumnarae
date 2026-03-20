@@ -1,4 +1,4 @@
-# ieum-narae-threadbot
+# threadbot-ieumnarae
 
 ## 프로젝트 개요
 이 저장소는 항공사 채용 및 승무원 준비 관련 정보를 수집하고, 이를 바탕으로 Threads 초안을 생성한 뒤 예약 게시까지 이어지는 자동화 시스템이다.

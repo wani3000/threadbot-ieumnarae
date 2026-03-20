@@ -31,7 +31,7 @@ function splitLongChunk(text: string, limit = MAX_MESSAGE_LENGTH): string[] {
 
 function previewChunks(targetDate: string, post: string, editUrl: string): string[] {
   const header = [
-    `[ieum-narae-threadbot] ${targetDate} 09:00 자동게시 예정 초안`,
+    `[threadbot-ieumnarae] ${targetDate} 09:00 자동게시 예정 초안`,
     `수정 링크: ${editUrl}`,
     "",
   ].join("\n");
