@@ -87,7 +87,7 @@ def morning_prepare() -> None:
 
     edit_link = f"{settings.dashboard_base_url}/?view=edit&draft={draft_path.name}"
     body = (
-        f"[ieumnarae-threadbot] 오늘 09:00 게시 예정 초안입니다.\\n\\n"
+        f"[ieum-narae-threadbot] 오늘 09:00 게시 예정 초안입니다.\\n\\n"
         f"생성시각(KST): {kst_now().isoformat()}\\n"
         f"수정 링크: {edit_link}\\n\\n"
         f"초안 본문:\\n{post_text}\\n"
@@ -109,7 +109,7 @@ def morning_prepare() -> None:
             smtp_password=settings.smtp_password or "",
             sender=settings.email_from or "",
             recipient=settings.email_to or "",
-            subject="[ieumnarae-threadbot] 09:00 자동게시 전 초안 확인",
+            subject="[ieum-narae-threadbot] 09:00 자동게시 전 초안 확인",
             body=body,
         )
         print("[morning_prepare] email sent")

@@ -1,4 +1,4 @@
-# ieumnarae-threadbot Research
+# ieum-narae-threadbot Research
 
 ## 1. 현재 운영 기준
 이 프로젝트는 항공사 채용/승무원 준비 신호를 수집하고, 이를 바탕으로 Threads 게시글 초안을 생성한 뒤 예약 게시하는 시스템이다.
@@ -223,7 +223,7 @@
 ## 12. 배포본에서 확인된 운영 상태
 - 공개 설정 API 응답은 정상이다: `/api/admin/config`
 - 대시보드 HTML에 아래가 실제 반영돼 있다
-  - `ieumnarae-threadbot Dashboard`
+  - `ieum-narae-threadbot Dashboard`
   - `마지막 Cron 실행 결과`
   - `오늘 게시 추적`
   - `평일 게시 시 7개 주제 순환`

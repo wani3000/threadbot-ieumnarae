@@ -1,4 +1,4 @@
-# ieumnarae-threadbot Vercel Migration (Vercel + Resend + Supabase)
+# ieum-narae-threadbot Vercel Migration (Vercel + Resend + Supabase)
 
 ## 1) Environment Variables
 Set these in Vercel Project Settings > Environment Variables.
@@ -21,7 +21,7 @@ Set these in Vercel Project Settings > Environment Variables.
 - `RESEND_API_KEY`
 - `TELEGRAM_BOT_TOKEN` (Telegram bot token for preview alerts)
 - `TELEGRAM_CHAT_ID` (Telegram chat id, e.g. `387557093`)
-- `EMAIL_FROM` (Resend verified sender, e.g. `ieumnarae-threadbot <noreply@yourdomain.com>`)
+- `EMAIL_FROM` (Resend verified sender, e.g. `ieum-narae-threadbot <noreply@yourdomain.com>`)
 - `EMAIL_TO` (`oxaz1234@gmail.com`)
 - `ADMIN_EMAILS` (optional, admin 허용 이메일 CSV. 미입력 시 `EMAIL_TO` 사용)
 - `NEXT_PUBLIC_SUPABASE_URL` (`SUPABASE_URL`와 동일 값)

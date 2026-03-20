@@ -1,5 +1,5 @@
 [project]
-name = "ieumnarae-threadbot"
+name = "ieum-narae-threadbot"
 version = "0.1.0"
 description = "Weekly airline hiring signal collector and Threads post generator"
 readme = "README.md"
