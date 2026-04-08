@@ -33,7 +33,8 @@ Set these in Vercel Project Settings > Environment Variables.
 ## 2) Supabase Setup
 1. Create a Supabase project.
 2. Open SQL Editor and run [`supabase/schema.sql`](./supabase/schema.sql).
-3. Existing projects should ensure `public.app_settings` exists so write mode and Threads token metadata are stored outside `sources`.
+3. Run [`supabase/harden_public_api.sql`](./supabase/harden_public_api.sql) to enable RLS on all app tables, revoke `anon/authenticated` table access, and auto-enable RLS on future `public` tables.
+4. Existing projects should ensure `public.app_settings` exists so write mode and Threads token metadata are stored outside `sources`.
 
 ## 3) Deploy on Vercel
 1. Import this repo to Vercel.
